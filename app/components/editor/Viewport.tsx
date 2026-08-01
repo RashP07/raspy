@@ -611,7 +611,7 @@ export function Viewport({
             aria-hidden
           />
           {interacting || straightening ? (
-            <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[12px] tabular-nums text-white backdrop-blur-md">
+            <div className="pointer-events-none absolute left-1/2 top-[calc(0.75rem+env(safe-area-inset-top,0px))] -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[12px] tabular-nums whitespace-nowrap text-white backdrop-blur-md">
               {cropLabel}
             </div>
           ) : null}
@@ -619,7 +619,7 @@ export function Viewport({
       ) : null}
 
       {comparing ? (
-        <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white backdrop-blur-md">
+        <div className="pointer-events-none absolute left-1/2 top-[calc(0.75rem+env(safe-area-inset-top,0px))] -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white backdrop-blur-md">
           ORIGINAL
         </div>
       ) : null}
@@ -627,7 +627,7 @@ export function Viewport({
       {mode === "adjust" && viewTransform.zoom > 1 ? (
         <button
           type="button"
-          className="absolute bottom-3 right-3 min-h-10 rounded-full bg-black/65 px-3 text-[12px] font-medium text-white backdrop-blur-md"
+          className="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] end-[calc(0.75rem+env(safe-area-inset-right,0px))] min-h-10 rounded-full bg-black/65 px-3 text-[12px] font-medium tabular-nums whitespace-nowrap text-white backdrop-blur-md"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() =>
             onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })

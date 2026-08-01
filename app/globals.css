@@ -162,8 +162,9 @@ input,
 }
 
 .se-tool-deck {
-  max-height: 248px;
-  border-top: 1px solid var(--se-hairline);
+  max-height: min(248px, 45dvh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
   border-radius: 20px 20px 0 0;
   background: var(--se-surface);
   box-shadow: 0 -10px 30px rgb(0 0 0 / 0.06);
@@ -464,8 +465,8 @@ input,
     flex-direction: column;
     justify-content: center;
     order: 2;
-    border-left: 1px solid var(--se-hairline);
-    border-bottom: 0;
+    border-inline-start: 1px solid var(--se-hairline);
+    border-block-end: 0;
   }
 
   .se-editor-tabs [role="tab"] {
@@ -490,7 +491,7 @@ input,
     min-height: 0;
     justify-content: flex-start;
     gap: 2px;
-    padding-right: 4px;
-    padding-left: 8px;
+    padding-inline-end: 4px;
+    padding-inline-start: 8px;
   }
 }

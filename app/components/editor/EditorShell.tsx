@@ -120,8 +120,8 @@ export function EditorShell({
         className="se-tool-deck shrink-0"
         style={{
           paddingBottom: "max(0.2rem, env(safe-area-inset-bottom))",
-          paddingLeft: "env(safe-area-inset-left)",
-          paddingRight: "env(safe-area-inset-right)",
+          paddingLeft: "max(0.35rem, env(safe-area-inset-left))",
+          paddingRight: "max(0.35rem, env(safe-area-inset-right))",
         }}
       >
         <Tabs
@@ -200,7 +200,7 @@ export function EditorShell({
         description="Your current edit will be removed from this device."
         className="border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]"
       >
-        <div className="flex flex-col gap-2 pb-[env(safe-area-inset-bottom)]">
+        <div className="flex flex-col gap-2">
           <Button
             variant="danger"
             size="lg"

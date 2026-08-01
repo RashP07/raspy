@@ -169,7 +169,7 @@ export function AdjustPanel({
                 {ADJUSTMENT_ICONS[key]}
               </AdjustmentDial>
               <span
-                className="text-[11px] leading-tight tracking-tight transition-colors"
+                className="flex min-h-[2.2em] items-start justify-center text-[11px] leading-tight transition-colors"
                 style={{
                   color: active ? "var(--se-fg)" : "var(--se-muted)",
                   fontWeight: active ? 600 : 500,
@@ -194,7 +194,7 @@ export function AdjustPanel({
           <span className="se-dial text-[20px] font-light leading-none">
             <span className="se-dial-icon">{showMore ? "−" : "+"}</span>
           </span>
-          <span className="text-[11px] font-medium leading-tight tracking-tight">
+          <span className="flex min-h-[2.2em] items-start justify-center text-[11px] font-medium leading-tight">
             {showMore ? "Less" : "More"}
           </span>
         </button>

@@ -167,7 +167,7 @@ export function ExportSheet({
       className="border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]"
     >
       <div
-        className="flex flex-col gap-5 pb-[env(safe-area-inset-bottom)]"
+        className="flex flex-col gap-5"
         style={{ fontFamily: "var(--font-ui)" }}
       >
         <section className="flex flex-col gap-2">
