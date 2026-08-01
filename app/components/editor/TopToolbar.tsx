@@ -50,7 +50,7 @@ export function TopToolbar({
         <Button
           variant="ghost"
           size="icon"
-          className="se-control min-h-11 min-w-11 text-[var(--se-fg)] disabled:opacity-25"
+          className="se-control min-h-11 min-w-11 text-[var(--se-fg)] disabled:opacity-45"
           aria-label="Undo"
           disabled={!canUndo || busy}
           onClick={onUndo}
@@ -60,7 +60,7 @@ export function TopToolbar({
         <Button
           variant="ghost"
           size="icon"
-          className="se-control min-h-11 min-w-11 text-[var(--se-fg)] disabled:opacity-25"
+          className="se-control min-h-11 min-w-11 text-[var(--se-fg)] disabled:opacity-45"
           aria-label="Redo"
           disabled={!canRedo || busy}
           onClick={onRedo}

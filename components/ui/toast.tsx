@@ -44,7 +44,7 @@ function ToastList() {
         toast={toast}
         className={cn(
           "absolute left-0 right-0 top-0 z-[calc(1000-var(--toast-index))] box-border",
-          "origin-top rounded-2xl border border-black/10 bg-white/95 text-neutral-900 backdrop-blur-md",
+          "origin-top rounded-2xl border border-black/10 bg-[var(--se-surface)]/95 text-[var(--se-fg)] backdrop-blur-md",
           "shadow-[0_8px_28px_rgb(0_0_0/0.12)]",
           "h-[var(--toast-height)] data-expanded:h-[var(--toast-height)]",
           "[transform:translateY(calc(var(--toast-index)*-0.35rem))_scale(calc(1-var(--toast-index)*0.04))]",
@@ -58,7 +58,7 @@ function ToastList() {
         <Toast.Content className="flex items-start gap-3 px-3.5 py-3">
           <div className="min-w-0 flex-1">
             <Toast.Title className="text-sm font-semibold" />
-            <Toast.Description className="text-xs text-neutral-500" />
+            <Toast.Description className="text-xs break-words text-[var(--se-muted)]" />
           </div>
           <Toast.Close
             className="shrink-0 rounded-md p-1.5 text-[var(--se-muted)] hover:bg-black/5 hover:text-[var(--se-fg)]"

@@ -598,7 +598,7 @@ export function Viewport({
       ) : null}
 
       {rendererStatus === "error" ? (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-red-300">
+        <div className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-[var(--se-danger)]">
           The photo preview could not be prepared.
         </div>
       ) : null}
@@ -611,7 +611,7 @@ export function Viewport({
             aria-hidden
           />
           {interacting || straightening ? (
-            <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[12px] tabular-nums text-white/90 backdrop-blur-md">
+            <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[12px] tabular-nums text-white backdrop-blur-md">
               {cropLabel}
             </div>
           ) : null}
@@ -619,7 +619,7 @@ export function Viewport({
       ) : null}
 
       {comparing ? (
-        <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/55 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white backdrop-blur-md">
+        <div className="pointer-events-none absolute left-1/2 top-3 -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white backdrop-blur-md">
           ORIGINAL
         </div>
       ) : null}
@@ -627,7 +627,7 @@ export function Viewport({
       {mode === "adjust" && viewTransform.zoom > 1 ? (
         <button
           type="button"
-          className="absolute bottom-3 right-3 min-h-10 rounded-full bg-black/55 px-3 text-[12px] font-medium text-white/90 backdrop-blur-md"
+          className="absolute bottom-3 right-3 min-h-10 rounded-full bg-black/65 px-3 text-[12px] font-medium text-white backdrop-blur-md"
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() =>
             onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })
