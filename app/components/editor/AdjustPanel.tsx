@@ -108,9 +108,8 @@ export function AdjustPanel({
     event.preventDefault();
     const nextKey = visibleKeys[nextIndex];
     onSelect(nextKey);
-    const radios = event.currentTarget.querySelectorAll<HTMLElement>(
-      '[role="radio"]',
-    );
+    const radios =
+      event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
     radios[nextIndex]?.focus();
   };
 
@@ -159,7 +158,7 @@ export function AdjustPanel({
               tabIndex={active ? 0 : -1}
               disabled={disabled}
               onClick={() => onSelect(key)}
-              className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-1.5 text-center transition-colors disabled:opacity-40"
+              className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-1.5 text-center transition-[color,background-color,scale] duration-150 ease-out not-disabled:hover:bg-black/[0.03] not-disabled:active:scale-[0.97] disabled:opacity-40"
             >
               <AdjustmentDial
                 active={active}
@@ -183,15 +182,17 @@ export function AdjustPanel({
         <button
           type="button"
           aria-expanded={showMore}
-          aria-label={showMore ? "Show fewer adjustments" : "Show more adjustments"}
+          aria-label={
+            showMore ? "Show fewer adjustments" : "Show more adjustments"
+          }
           disabled={disabled}
           onClick={() => setShowMore((prev) => !prev)}
-          className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-1.5 text-center transition-colors disabled:opacity-40"
+          className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-1.5 text-center transition-[color,background-color,scale] duration-150 ease-out not-disabled:hover:bg-black/[0.03] not-disabled:active:scale-[0.97] disabled:opacity-40"
           style={{
             color: moreHasEdits ? "var(--se-fg)" : "var(--se-muted)",
           }}
         >
-          <span className="se-dial text-[20px] font-light leading-none">
+          <span className="se-dial text-[20px] leading-none">
             <span className="se-dial-icon">{showMore ? "−" : "+"}</span>
           </span>
           <span className="flex min-h-[2.2em] items-start justify-center text-[11px] font-medium leading-tight">
@@ -200,18 +201,18 @@ export function AdjustPanel({
         </button>
       </div>
 
-      <div className="grid min-h-5 grid-cols-[1fr_auto_1fr] items-center px-3">
+      <div className="grid min-h-6 grid-cols-[1fr_auto_1fr] items-center px-3">
         <button
           type="button"
-          className="justify-self-start px-1 py-0.5 text-[12px] text-[var(--se-muted)] transition-colors hover:text-[var(--se-fg)] disabled:opacity-0"
+          className="min-h-6 justify-self-start px-1 py-0.5 text-[12px] text-[var(--se-muted)] transition-colors hover:text-[var(--se-fg)] disabled:pointer-events-none disabled:opacity-40"
           disabled={disabled || !hasAnyAdjustments}
           onClick={onResetAll}
         >
-          Reset All
+          Reset all
         </button>
         <button
           type="button"
-          className="tabular-nums px-2 text-[14px] font-semibold disabled:opacity-100"
+          className="min-h-6 tabular-nums px-2 text-[14px] font-semibold disabled:opacity-100"
           disabled={disabled || value === 0}
           onClick={() => onReset(activeKey)}
           aria-label={
@@ -228,11 +229,7 @@ export function AdjustPanel({
         <span className="justify-self-end" aria-hidden />
       </div>
 
-      <div
-        className="px-1"
-        onPointerUp={onCommit}
-        onPointerCancel={onCommit}
-      >
+      <div className="px-1" onPointerUp={onCommit} onPointerCancel={onCommit}>
         <RulerSlider
           value={value}
           min={meta.min}
@@ -270,7 +267,13 @@ function AdjustmentDial({
       className="se-dial"
       data-active={active || undefined}
       aria-hidden
-      style={{ color: active ? "#ffffff" : adjusted ? "var(--se-fg)" : "var(--se-muted)" }}
+      style={{
+        color: active
+          ? "#ffffff"
+          : adjusted
+            ? "var(--se-fg)"
+            : "var(--se-muted)",
+      }}
     >
       {progress > 0.01 ? (
         <svg className="se-dial-ring" viewBox="0 0 52 52">
@@ -325,7 +328,12 @@ const ADJUSTMENT_ICONS: Record<AdjustmentKey, ReactNode> = {
   shadows: (
     <svg {...iconProps}>
       <circle cx="12" cy="12" r="8" />
-      <path d="M12 4a8 8 0 0 0 0 16" fill="currentColor" stroke="none" opacity="0.35" />
+      <path
+        d="M12 4a8 8 0 0 0 0 16"
+        fill="currentColor"
+        stroke="none"
+        opacity="0.35"
+      />
     </svg>
   ),
   contrast: (

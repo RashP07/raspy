@@ -49,7 +49,7 @@ function ToastList() {
           "h-[var(--toast-height)] data-expanded:h-[var(--toast-height)]",
           "[transform:translateY(calc(var(--toast-index)*-0.35rem))_scale(calc(1-var(--toast-index)*0.04))]",
           "data-expanded:[transform:translateY(calc(var(--toast-index)*(var(--toast-height)+0.5rem)))]",
-          "transition-[transform,opacity] duration-300 ease-out",
+          "transition-[transform,translate,opacity] duration-300 ease-out",
           "data-starting-style:-translate-y-4 data-starting-style:opacity-0",
           "data-ending-style:-translate-y-4 data-ending-style:opacity-0",
           statusAccent[status],
@@ -86,7 +86,12 @@ export function useToast() {
   const manager = Toast.useToastManager();
 
   return {
-    showToast: ({ title, description, status = "neutral", timeout }: ShowToastInput) =>
+    showToast: ({
+      title,
+      description,
+      status = "neutral",
+      timeout,
+    }: ShowToastInput) =>
       manager.add({
         title,
         description,

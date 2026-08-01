@@ -73,12 +73,7 @@ export function CropPanel({
   }, [crop.aspect]);
 
   const setAspect = (aspect: AspectRatio) => {
-    const ratio = aspectValue(
-      aspect,
-      sourceWidth,
-      sourceHeight,
-      crop.rotation,
-    );
+    const ratio = aspectValue(aspect, sourceWidth, sourceHeight, crop.rotation);
     if (ratio === null) {
       onChange({ aspect }, false);
       return;
@@ -108,9 +103,8 @@ export function CropPanel({
     if (nextIndex === null) return;
     event.preventDefault();
     setActiveTool(CROP_TOOLS[nextIndex].value);
-    const radios = event.currentTarget.querySelectorAll<HTMLElement>(
-      '[role="radio"]',
-    );
+    const radios =
+      event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
     radios[nextIndex]?.focus();
   };
 
@@ -126,9 +120,8 @@ export function CropPanel({
     if (nextIndex === null) return;
     event.preventDefault();
     setAspect(aspectOptions[nextIndex].value);
-    const radios = event.currentTarget.querySelectorAll<HTMLElement>(
-      '[role="radio"]',
-    );
+    const radios =
+      event.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
     radios[nextIndex]?.focus();
   };
 
@@ -140,56 +133,57 @@ export function CropPanel({
         fontFamily: "var(--font-ui)",
       }}
     >
-      <div className="flex items-center justify-center gap-0.5 px-1">
-        <Button
-          variant="ghost"
-          size="icon"
-          className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
-          aria-label="Rotate 90 degrees"
-          onClick={() =>
-            onChange(
-              {
-                rotation: nextRotation(crop.rotation),
-                aspect: rotateAspect(crop.aspect),
-              },
-              false,
-            )
-          }
-        >
-          <RotateIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
-          aria-label="Flip horizontal"
-          onClick={() => onChange({ flipX: !crop.flipX }, false)}
-        >
-          <FlipHorizontalIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
-          aria-label="Flip vertical"
-          onClick={() => onChange({ flipY: !crop.flipY }, false)}
-        >
-          <FlipVerticalIcon />
-        </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="se-control min-h-10 min-w-10 text-[var(--se-muted)]"
-          aria-label="Reset crop"
-          onClick={onReset}
-        >
-          <ResetCropIcon />
-        </Button>
-        <span className="mx-1 h-4 w-px bg-[var(--se-hairline)]" aria-hidden />
+      <div className="flex items-center justify-center gap-3 px-1">
+        <div className="flex items-center gap-1.5">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
+            aria-label="Rotate 90 degrees"
+            onClick={() =>
+              onChange(
+                {
+                  rotation: nextRotation(crop.rotation),
+                  aspect: rotateAspect(crop.aspect),
+                },
+                false,
+              )
+            }
+          >
+            <RotateIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
+            aria-label="Flip horizontal"
+            onClick={() => onChange({ flipX: !crop.flipX }, false)}
+          >
+            <FlipHorizontalIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
+            aria-label="Flip vertical"
+            onClick={() => onChange({ flipY: !crop.flipY }, false)}
+          >
+            <FlipVerticalIcon />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="se-control min-h-10 min-w-10 text-[var(--se-muted)]"
+            aria-label="Reset crop"
+            onClick={onReset}
+          >
+            <ResetCropIcon />
+          </Button>
+        </div>
         <div
           role="radiogroup"
           aria-label="Crop tool"
-          className="flex items-center gap-0.5"
+          className="flex items-center gap-1.5"
           onKeyDown={handleToolKeyDown}
         >
           {CROP_TOOLS.map((tool) => {
@@ -202,7 +196,7 @@ export function CropPanel({
                 aria-checked={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setActiveTool(tool.value)}
-                className="min-h-10 rounded-md px-2.5 text-[13px] font-medium transition-colors"
+                className="min-h-10 rounded-lg px-2.5 text-[13px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-black/[0.04] active:scale-[0.96]"
                 style={{
                   color: active ? "var(--se-active)" : "var(--se-muted)",
                 }}
@@ -231,12 +225,10 @@ export function CropPanel({
                 aria-checked={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setAspect(option.value)}
-                className="min-h-9 shrink-0 rounded-md px-3 text-[13px] font-medium transition-colors"
+                className="min-h-9 shrink-0 rounded-lg px-3 text-[13px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-black/[0.04] active:scale-[0.96]"
                 style={{
                   color: active ? "var(--se-active)" : "var(--se-muted)",
-                  background: active
-                    ? "var(--se-selected-bg)"
-                    : "transparent",
+                  background: active ? "var(--se-selected-bg)" : "transparent",
                   border: active
                     ? "1px solid var(--se-hairline)"
                     : "1px solid transparent",

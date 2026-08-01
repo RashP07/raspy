@@ -60,7 +60,11 @@ export interface EditorContextValue {
   setExportOpen: (open: boolean) => void;
   setBusy: (busy: string | null) => void;
   setRendererStatus: (status: EditorUiState["rendererStatus"]) => void;
-  setAdjustment: (key: AdjustmentKey, value: number, coalesce?: boolean) => void;
+  setAdjustment: (
+    key: AdjustmentKey,
+    value: number,
+    coalesce?: boolean,
+  ) => void;
   resetAdjustment: (key: AdjustmentKey) => void;
   resetAllAdjustments: () => void;
   setCrop: (crop: Partial<CropState>, coalesce?: boolean) => void;
@@ -92,7 +96,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       const detail = (event as CustomEvent<{ supportsAdjustments: boolean }>)
         .detail;
       if (detail) {
-        dispatch({ type: "SET_HAS_WEBGL", hasWebGL: detail.supportsAdjustments });
+        dispatch({
+          type: "SET_HAS_WEBGL",
+          hasWebGL: detail.supportsAdjustments,
+        });
         if (!detail.supportsAdjustments) {
           dispatch({
             type: "SET_STORAGE_WARNING",

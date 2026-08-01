@@ -31,9 +31,7 @@ export interface ExportSheetProps {
   sourceHeight: number;
   crop: CropState;
   sourceMimeType?: string;
-  getExportDimensions?: (
-    options: ExportOptions,
-  ) => ExportDimensions | null;
+  getExportDimensions?: (options: ExportOptions) => ExportDimensions | null;
 }
 
 type FormatOption = ExportOptions["format"];
@@ -95,13 +93,11 @@ function OptionChip({
       disabled={disabled}
       onClick={onClick}
       onKeyDown={onKeyDown}
-      className="min-h-10 flex-1 rounded-md text-[14px] font-medium transition-colors disabled:opacity-50"
+      className="min-h-10 flex-1 rounded-lg border border-[var(--se-hairline)] text-[14px] font-medium transition-[color,background-color,box-shadow,scale] duration-150 ease-out not-disabled:hover:bg-black/[0.04] not-disabled:active:scale-[0.96] disabled:opacity-40"
       style={{
         color: active ? "var(--se-active)" : "var(--se-muted)",
         background: active ? "var(--se-selected-bg)" : "transparent",
-        border: active
-          ? "1px solid var(--se-hairline)"
-          : "1px solid var(--se-hairline)",
+        boxShadow: active ? "0 0 0 1px var(--se-fg)" : undefined,
       }}
     >
       {label}
@@ -171,7 +167,9 @@ export function ExportSheet({
         style={{ fontFamily: "var(--font-ui)" }}
       >
         <section className="flex flex-col gap-2">
-          <h3 className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}>
+          <h3
+            className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}
+          >
             Format
           </h3>
           <div role="radiogroup" aria-label="Format" className="flex gap-2">
@@ -196,7 +194,9 @@ export function ExportSheet({
         </section>
 
         <section className="flex flex-col gap-2">
-          <h3 className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}>
+          <h3
+            className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}
+          >
             Size
           </h3>
           <div role="radiogroup" aria-label="Size" className="flex gap-2">
@@ -207,9 +207,7 @@ export function ExportSheet({
                 disabled={exporting}
                 label={option.label}
                 onClick={() => setSize(option.value)}
-                onKeyDown={(event) =>
-                  radioKeyNav(event, SIZES, size, setSize)
-                }
+                onKeyDown={(event) => radioKeyNav(event, SIZES, size, setSize)}
               />
             ))}
           </div>

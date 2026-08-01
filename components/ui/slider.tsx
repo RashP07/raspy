@@ -90,8 +90,7 @@ export function RangeSlider({
     [ticks, min, max, step, origin],
   );
 
-  const showOrigin =
-    origin !== undefined && origin > min && origin < max;
+  const showOrigin = origin !== undefined && origin > min && origin < max;
 
   const handleChange = (nextRaw: number | number[]) => {
     const next = typeof nextRaw === "number" ? nextRaw : (nextRaw[0] ?? value);
@@ -101,8 +100,7 @@ export function RangeSlider({
         showOrigin && origin !== undefined
           ? stepIndex(origin, min, step)
           : null;
-      const crossedOrigin =
-        originIndex !== null && nextIndex === originIndex;
+      const crossedOrigin = originIndex !== null && nextIndex === originIndex;
       playSliderTick({ accent: crossedOrigin });
     }
     lastIndexRef.current = nextIndex;
@@ -125,12 +123,15 @@ export function RangeSlider({
       {marks.length > 0 ? (
         <div className="se-slider-ticks" aria-hidden>
           {marks.map((mark) => {
-            const pct = ((mark.value - min) / Math.max(0.0001, max - min)) * 100;
+            const pct =
+              ((mark.value - min) / Math.max(0.0001, max - min)) * 100;
             return (
               <span
                 key={`${mark.value}-${mark.major ? "m" : "n"}`}
                 className={
-                  mark.major ? "se-slider-tick se-slider-tick-major" : "se-slider-tick"
+                  mark.major
+                    ? "se-slider-tick se-slider-tick-major"
+                    : "se-slider-tick"
                 }
                 style={{ left: `${pct}%` }}
               />

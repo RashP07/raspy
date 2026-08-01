@@ -70,9 +70,11 @@ export function RulerSlider({
   onValueChange,
 }: RulerSliderProps) {
   const rootRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ pointerId: number; x: number; value: number } | null>(
-    null,
-  );
+  const dragRef = useRef<{
+    pointerId: number;
+    x: number;
+    value: number;
+  } | null>(null);
   const lastUnitRef = useRef(0);
   const [width, setWidth] = useState(0);
 
@@ -106,8 +108,7 @@ export function RulerSlider({
       const tickValue = Number(raw.toFixed(6));
       const majorIndex = tickValue / majorInterval;
       const isMajor = Math.abs(majorIndex - Math.round(majorIndex)) < 1e-6;
-      const labelled =
-        isMajor && Math.round(majorIndex) % labelStride === 0;
+      const labelled = isMajor && Math.round(majorIndex) % labelStride === 0;
       out.push({
         value: tickValue,
         major: isMajor,
@@ -193,7 +194,11 @@ export function RulerSlider({
       aria-valuenow={value}
       aria-valuetext={formatLabel(value)}
       aria-disabled={disabled || undefined}
-      className={cn("se-ruler", disabled && "pointer-events-none opacity-40", className)}
+      className={cn(
+        "se-ruler",
+        disabled && "pointer-events-none opacity-40",
+        className,
+      )}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}

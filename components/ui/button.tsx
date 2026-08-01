@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 const variants = {
   primary:
-    "bg-[var(--se-accent)] text-white hover:not-data-disabled:brightness-125 active:not-data-disabled:brightness-90",
+    "bg-[var(--se-accent)] text-white hover:not-data-disabled:bg-[var(--se-accent-hover)] hover:not-data-disabled:shadow-[0_2px_8px_rgb(0_0_0/0.18)] active:not-data-disabled:brightness-90",
   danger:
     "bg-[var(--se-danger)] text-white hover:not-data-disabled:brightness-110 active:not-data-disabled:brightness-95",
   ghost:
@@ -14,7 +14,7 @@ const variants = {
 } as const;
 
 const pressScale =
-  "active:not-data-disabled:scale-[0.96] transition-[color,background-color,border-color,transform,filter]";
+  "active:not-data-disabled:scale-[0.96] transition-[color,background-color,border-color,box-shadow,scale,filter] duration-150 ease-out";
 
 const sizes = {
   sm: "h-8 min-h-8 gap-1.5 px-2.5 text-xs",

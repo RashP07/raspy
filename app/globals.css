@@ -27,14 +27,15 @@
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
-  --font-ui: var(--font-plex), "IBM Plex Sans", ui-sans-serif, system-ui,
-    sans-serif;
+  --font-ui:
+    var(--font-plex), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --se-bg: #f2f2f4;
   --se-chrome: #f2f2f4;
   --se-surface: #ffffff;
   --se-fg: #1c1c1e;
   --se-muted: #66666e;
   --se-accent: #1c1c1e;
+  --se-accent-hover: #34343c;
   --se-active: #0a0a0a;
   --se-danger: #c32026;
   --se-hairline: rgb(0 0 0 / 0.08);
@@ -142,17 +143,8 @@ input,
 .se-control {
   background: transparent;
   transition:
-    color 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
-}
-
-.se-control:hover {
-  color: var(--se-active);
-}
-
-.se-control:active {
-  transform: scale(0.96);
+    color 150ms ease-out,
+    opacity 150ms ease-out;
 }
 
 .se-viewport {

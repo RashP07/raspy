@@ -26,16 +26,7 @@ import {
   type RenderGeometry,
 } from "@/app/lib/image/geometry";
 
-type Handle =
-  | "move"
-  | "n"
-  | "s"
-  | "e"
-  | "w"
-  | "ne"
-  | "nw"
-  | "se"
-  | "sw";
+type Handle = "move" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
 export interface ViewportProps {
   mode: "adjust" | "crop";
@@ -437,11 +428,7 @@ export function Viewport({
     const pointers = [...pointersRef.current.values()];
     const gesture = adjustGestureRef.current;
     if (!gesture) return;
-    if (
-      pointers.length === 2 &&
-      gesture.startCenter &&
-      gesture.startDistance
-    ) {
+    if (pointers.length === 2 && gesture.startCenter && gesture.startDistance) {
       const center = midpoint(pointers[0]!, pointers[1]!);
       const nextZoom = Math.min(
         5,
@@ -460,10 +447,8 @@ export function Viewport({
       onCompareEnd();
       onViewTransformChange({
         ...viewTransform,
-        panX:
-          gesture.initialView.panX + pointers[0]!.x - gesture.startPoint.x,
-        panY:
-          gesture.initialView.panY + pointers[0]!.y - gesture.startPoint.y,
+        panX: gesture.initialView.panX + pointers[0]!.x - gesture.startPoint.x,
+        panY: gesture.initialView.panY + pointers[0]!.y - gesture.startPoint.y,
       });
     }
   };
@@ -629,9 +614,7 @@ export function Viewport({
           type="button"
           className="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] end-[calc(0.75rem+env(safe-area-inset-right,0px))] min-h-10 rounded-full bg-black/65 px-3 text-[12px] font-medium tabular-nums whitespace-nowrap text-white backdrop-blur-md"
           onPointerDown={(event) => event.stopPropagation()}
-          onClick={() =>
-            onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })
-          }
+          onClick={() => onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })}
         >
           {viewTransform.zoom.toFixed(1)}× · Fit
         </button>
