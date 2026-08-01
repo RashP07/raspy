@@ -90,10 +90,14 @@ export function AdjustPanel({
   }, [activeKey, showMore]);
 
   useEffect(() => {
+    // An explicit behavior option wins over the reduced-motion CSS reset.
+    const reduceMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)",
+    ).matches;
     chipRefs.current.get(activeKey)?.scrollIntoView({
       inline: "center",
       block: "nearest",
-      behavior: "smooth",
+      behavior: reduceMotion ? "auto" : "smooth",
     });
   }, [activeKey]);
 
@@ -133,52 +137,54 @@ export function AdjustPanel({
         </p>
       ) : null}
 
-      <div
-        className="scrollbar-none flex snap-x snap-proximity gap-1 overflow-x-auto px-3 pb-1 pt-1.5"
-        role="radiogroup"
-        aria-label="Adjustments"
-        onKeyDown={handleChipKeyDown}
-      >
-        {visibleKeys.map((key) => {
-          const active = key === activeKey;
-          const adjusted = values[key] !== 0;
-          const label = ADJUSTMENT_META[key].label;
-          const progress = dialProgress(key, values[key]);
-          return (
-            <button
-              key={key}
-              ref={(node) => {
-                if (node) chipRefs.current.set(key, node);
-                else chipRefs.current.delete(key);
-              }}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              aria-label={adjusted ? `${label}, adjusted` : label}
-              tabIndex={active ? 0 : -1}
-              disabled={disabled}
-              onClick={() => onSelect(key)}
-              className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-1.5 text-center transition-[color,background-color,scale] duration-150 ease-out not-disabled:hover:bg-black/[0.03] not-disabled:active:scale-[0.97] disabled:opacity-40"
-            >
-              <AdjustmentDial
-                active={active}
-                progress={progress}
-                adjusted={adjusted}
-              >
-                {ADJUSTMENT_ICONS[key]}
-              </AdjustmentDial>
-              <span
-                className="flex min-h-[2.2em] items-start justify-center text-[11px] leading-tight transition-colors"
-                style={{
-                  color: active ? "var(--se-fg)" : "var(--se-muted)",
-                  fontWeight: active ? 600 : 500,
+      <div className="scrollbar-none flex snap-x snap-proximity gap-1 overflow-x-auto px-3 pb-1 pt-1.5">
+        <div
+          className="flex gap-1"
+          role="radiogroup"
+          aria-label="Adjustments"
+          onKeyDown={handleChipKeyDown}
+        >
+          {visibleKeys.map((key) => {
+            const active = key === activeKey;
+            const adjusted = values[key] !== 0;
+            const label = ADJUSTMENT_META[key].label;
+            const progress = dialProgress(key, values[key]);
+            return (
+              <button
+                key={key}
+                ref={(node) => {
+                  if (node) chipRefs.current.set(key, node);
+                  else chipRefs.current.delete(key);
                 }}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                aria-label={adjusted ? `${label}, adjusted` : label}
+                tabIndex={active ? 0 : -1}
+                disabled={disabled}
+                onClick={() => onSelect(key)}
+                className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl px-1 pb-1 pt-1.5 text-center transition-[color,background-color,scale] duration-150 ease-out not-disabled:hover:bg-black/[0.03] not-disabled:active:scale-[0.97] disabled:opacity-40"
               >
-                {label}
-              </span>
-            </button>
-          );
-        })}
+                <AdjustmentDial
+                  active={active}
+                  progress={progress}
+                  adjusted={adjusted}
+                >
+                  {ADJUSTMENT_ICONS[key]}
+                </AdjustmentDial>
+                <span
+                  className="flex min-h-[2.2em] items-start justify-center text-[11px] leading-tight transition-colors"
+                  style={{
+                    color: active ? "var(--se-fg)" : "var(--se-muted)",
+                    fontWeight: active ? 600 : 500,
+                  }}
+                >
+                  {label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
         <button
           type="button"
           aria-expanded={showMore}

@@ -64,8 +64,8 @@ export function ImportScreen({
         </header>
 
         {isBusy ? (
-          <div className="flex flex-col items-center gap-3 py-8">
-            <Spinner size={28} label={busy ?? "Loading"} />
+          <div role="status" className="flex flex-col items-center gap-3 py-8">
+            <Spinner size={28} decorative />
             <p className="text-[15px]" style={{ color: "var(--se-muted)" }}>
               {busy}
             </p>
@@ -77,6 +77,7 @@ export function ImportScreen({
               type="file"
               accept={ACCEPT}
               className="sr-only"
+              tabIndex={-1}
               aria-label="Open photo"
               onChange={(event) => {
                 const files = Array.from(event.currentTarget.files ?? []);

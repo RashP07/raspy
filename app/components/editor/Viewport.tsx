@@ -495,6 +495,42 @@ export function Viewport({
     ) {
       event.preventDefault();
       const multiplier = event.shiftKey ? 10 : 1;
+      if (event.altKey) {
+        const widthDelta =
+          event.key === "ArrowLeft"
+            ? -multiplier / sourceWidth
+            : event.key === "ArrowRight"
+              ? multiplier / sourceWidth
+              : 0;
+        const heightDelta =
+          event.key === "ArrowUp"
+            ? -multiplier / sourceHeight
+            : event.key === "ArrowDown"
+              ? multiplier / sourceHeight
+              : 0;
+        let resized = normalizeBounds({
+          ...crop.bounds,
+          width: Math.max(MIN_CROP_SIZE, crop.bounds.width + widthDelta),
+          height: Math.max(MIN_CROP_SIZE, crop.bounds.height + heightDelta),
+        });
+        const ratio = aspectValue(
+          crop.aspect,
+          sourceWidth,
+          sourceHeight,
+          crop.rotation,
+        );
+        if (ratio !== null) {
+          resized = fitAspectBounds(
+            ratio,
+            sourceWidth,
+            sourceHeight,
+            crop.rotation,
+            resized,
+          );
+        }
+        onCropChange({ bounds: resized }, false);
+        return;
+      }
       const dx =
         event.key === "ArrowLeft"
           ? -multiplier / sourceWidth
@@ -563,27 +599,35 @@ export function Viewport({
       <p id={shortcutsId} className="sr-only">
         Keyboard shortcuts: Space compares the original in adjust mode. Plus or
         equals zooms in, minus zooms out, zero fits. In crop mode, arrow keys
-        move the crop; Shift plus arrows move faster.
+        move the crop and Alt plus arrows resize it; Shift plus arrows move
+        faster.
       </p>
       <canvas
         ref={canvasRef}
         className={`absolute inset-0 h-full w-full transition-opacity duration-200 ${
           rendererStatus === "ready" ? "opacity-100" : "opacity-0"
         }`}
+        role="img"
         aria-label="Photo preview"
       />
 
       {loading ? (
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
-          <div className="se-glass flex items-center gap-3 rounded-full px-4 py-2 text-sm text-[var(--se-fg)]/70">
-            <Spinner size={18} label="Preparing preview" />
+          <div
+            role="status"
+            className="se-glass flex items-center gap-3 rounded-full px-4 py-2 text-sm text-[var(--se-fg)]/70"
+          >
+            <Spinner size={18} decorative />
             Preparing preview
           </div>
         </div>
       ) : null}
 
       {rendererStatus === "error" ? (
-        <div className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-[var(--se-danger)]">
+        <div
+          role="alert"
+          className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-balance text-[var(--se-danger)]"
+        >
           The photo preview could not be prepared.
         </div>
       ) : null}

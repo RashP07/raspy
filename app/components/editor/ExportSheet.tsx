@@ -1,7 +1,9 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
+  useRef,
   useState,
   useSyncExternalStore,
   type KeyboardEvent,
@@ -57,12 +59,21 @@ function radioKeyNav<T>(
   current: T,
   setValue: (value: T) => void,
 ) {
-  if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-  event.preventDefault();
   const index = options.findIndex((option) => option.value === current);
   if (index < 0) return;
-  const delta = event.key === "ArrowRight" ? 1 : -1;
-  const nextIndex = (index + delta + options.length) % options.length;
+  let nextIndex: number;
+  if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+    nextIndex = (index + 1) % options.length;
+  } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+    nextIndex = (index - 1 + options.length) % options.length;
+  } else if (event.key === "Home") {
+    nextIndex = 0;
+  } else if (event.key === "End") {
+    nextIndex = options.length - 1;
+  } else {
+    return;
+  }
+  event.preventDefault();
   setValue(options[nextIndex]!.value);
   const radios =
     event.currentTarget.parentElement?.querySelectorAll<HTMLElement>(
@@ -122,6 +133,13 @@ export function ExportSheet({
   const [size, setSize] = useState<SizeOption>("original");
   const [quality, setQuality] = useState(0.92);
   const exporting = progress !== null;
+  const stopButtonRef = useRef<HTMLButtonElement>(null);
+
+  // Starting a save unmounts the button that was just activated, which would
+  // otherwise drop focus to the document body mid-export.
+  useEffect(() => {
+    if (exporting) stopButtonRef.current?.focus();
+  }, [exporting]);
   const canShareFiles = useSyncExternalStore(
     subscribeToClient,
     () => typeof navigator.share === "function",
@@ -248,20 +266,21 @@ export function ExportSheet({
 
         {exporting ? (
           <div className="flex flex-col items-center gap-3 py-2">
-            <Spinner size={28} label="Saving" />
-            <p className={`text-[15px] ${MUTED}`}>
+            <Spinner size={28} decorative />
+            <p role="status" className={`text-[15px] tabular-nums ${MUTED}`}>
               {cancelling
                 ? "Cancelling…"
                 : `Saving… ${Math.round((progress ?? 0) * 100)}%`}
             </p>
             {onCancelExport && !cancelling ? (
               <Button
+                ref={stopButtonRef}
                 variant="ghost"
                 size="sm"
                 className={`min-h-11 text-[15px] ${MUTED}`}
                 onClick={onCancelExport}
               >
-                Cancel
+                Stop saving
               </Button>
             ) : null}
           </div>
@@ -287,7 +306,7 @@ export function ExportSheet({
               className="min-h-11 w-full text-[15px] text-[var(--se-muted)]"
               onClick={() => onOpenChange(false)}
             >
-              Cancel
+              Close
             </Button>
           </div>
         )}

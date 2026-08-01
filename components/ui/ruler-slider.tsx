@@ -206,30 +206,31 @@ export function RulerSlider({
       onKeyDown={handleKeyDown}
       onDoubleClick={origin !== undefined ? () => changeTo(origin) : undefined}
     >
-      <div
-        className="se-ruler-tape"
-        style={{
-          width: `${tapeWidth}px`,
-          transform: `translate3d(${offset}px, 0, 0)`,
-        }}
-        aria-hidden
-      >
-        {ticks.map((tick) => (
-          <span key={tick.value} style={{ left: `${xOf(tick.value)}px` }}>
-            {tick.label !== null ? (
-              <span className="se-ruler-label">{tick.label}</span>
-            ) : null}
-            <span
-              className={cn(
-                "se-ruler-tick",
-                tick.major && "se-ruler-tick-major",
-                origin !== undefined &&
-                  Math.abs(tick.value - origin) < 1e-9 &&
-                  "se-ruler-tick-origin",
-              )}
-            />
-          </span>
-        ))}
+      <div className="se-ruler-mask" aria-hidden>
+        <div
+          className="se-ruler-tape"
+          style={{
+            width: `${tapeWidth}px`,
+            transform: `translate3d(${offset}px, 0, 0)`,
+          }}
+        >
+          {ticks.map((tick) => (
+            <span key={tick.value} style={{ left: `${xOf(tick.value)}px` }}>
+              {tick.label !== null ? (
+                <span className="se-ruler-label">{tick.label}</span>
+              ) : null}
+              <span
+                className={cn(
+                  "se-ruler-tick",
+                  tick.major && "se-ruler-tick-major",
+                  origin !== undefined &&
+                    Math.abs(tick.value - origin) < 1e-9 &&
+                    "se-ruler-tick-origin",
+                )}
+              />
+            </span>
+          ))}
+        </div>
       </div>
       <div className="se-ruler-center" aria-hidden />
       <div className="se-ruler-arrow" aria-hidden />

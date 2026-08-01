@@ -113,7 +113,7 @@ input,
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
+  *:not([data-allow-motion]),
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
@@ -150,7 +150,11 @@ input,
 .se-viewport {
   background: var(--se-bg);
   touch-action: none;
-  outline: none;
+}
+
+/* The container is clipped, so the ring has to sit inside its own bounds. */
+.se-viewport:focus-visible {
+  outline-offset: -3px;
 }
 
 .se-tool-deck {
@@ -220,7 +224,14 @@ input,
   cursor: ew-resize;
   user-select: none;
   -webkit-user-select: none;
-  outline-offset: -2px;
+  outline-offset: -3px;
+}
+
+/* The fade lives on an inner layer so it cannot eat the focus ring. */
+.se-ruler-mask {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,

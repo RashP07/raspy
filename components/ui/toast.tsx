@@ -62,7 +62,7 @@ function ToastList() {
           </div>
           <Toast.Close
             className="shrink-0 rounded-md p-1.5 text-[var(--se-muted)] hover:bg-black/5 hover:text-[var(--se-fg)]"
-            aria-label="Dismiss"
+            aria-label="Dismiss notification"
           >
             <svg
               aria-hidden

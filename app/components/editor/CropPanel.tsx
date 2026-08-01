@@ -139,7 +139,7 @@ export function CropPanel({
             variant="ghost"
             size="icon"
             className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
-            aria-label="Rotate 90 degrees"
+            aria-label="Rotate right 90 degrees"
             onClick={() =>
               onChange(
                 {

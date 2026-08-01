@@ -10,10 +10,11 @@ import { CropPanel } from "./CropPanel";
 import { ExportSheet } from "./ExportSheet";
 import { TopToolbar } from "./TopToolbar";
 import { Viewport } from "./Viewport";
-import type {
-  ExportDimensions,
-  ExportOptions,
-  ViewTransform,
+import {
+  ADJUSTMENT_META,
+  type ExportDimensions,
+  type ExportOptions,
+  type ViewTransform,
 } from "@/app/lib/editor/types";
 
 export interface EditorShellProps {
@@ -102,85 +103,89 @@ export function EditorShell({
         onExport={() => setExportOpen(true)}
       />
 
-      <Viewport
-        mode={ui.mode}
-        crop={project.crop}
-        sourceWidth={project.source.width}
-        sourceHeight={project.source.height}
-        canvasRef={canvasRef}
-        onCropChange={setCrop}
-        onCropCommit={commitHistory}
-        comparing={ui.comparing}
-        rendererStatus={ui.rendererStatus}
-        onCompareStart={() => setComparing(true)}
-        onCompareEnd={() => setComparing(false)}
-        viewTransform={viewTransform}
-        onViewTransformChange={onViewTransformChange}
-        straightening={straightening}
-      />
+      <h1 className="sr-only">Editing photo</h1>
 
-      <div
-        className="se-tool-deck shrink-0"
-        style={{
-          paddingBottom: "max(0.2rem, env(safe-area-inset-bottom))",
-          paddingLeft: "max(0.35rem, env(safe-area-inset-left))",
-          paddingRight: "max(0.35rem, env(safe-area-inset-right))",
-        }}
-      >
-        <Tabs
-          value={ui.mode}
-          onValueChange={(value) => {
-            if (value === "adjust" || value === "crop") {
-              onViewTransformReset();
-              setMode(value);
-            }
+      <main className="flex min-h-0 flex-1 flex-col">
+        <Viewport
+          mode={ui.mode}
+          crop={project.crop}
+          sourceWidth={project.source.width}
+          sourceHeight={project.source.height}
+          canvasRef={canvasRef}
+          onCropChange={setCrop}
+          onCropCommit={commitHistory}
+          comparing={ui.comparing}
+          rendererStatus={ui.rendererStatus}
+          onCompareStart={() => setComparing(true)}
+          onCompareEnd={() => setComparing(false)}
+          viewTransform={viewTransform}
+          onViewTransformChange={onViewTransformChange}
+          straightening={straightening}
+        />
+
+        <div
+          className="se-tool-deck shrink-0"
+          style={{
+            paddingBottom: "max(0.2rem, env(safe-area-inset-bottom))",
+            paddingLeft: "max(0.35rem, env(safe-area-inset-left))",
+            paddingRight: "max(0.35rem, env(safe-area-inset-right))",
           }}
-          className="se-editor-tabs flex flex-col px-1 pt-1"
         >
-          <TabsContent value="adjust" className="se-editor-panel mt-0">
-            <AdjustPanel
-              activeKey={ui.activeAdjustment}
-              values={project.adjustments}
-              hasWebGL={ui.hasWebGL}
-              onSelect={setActiveAdjustment}
-              onChange={(key, value) => setAdjustment(key, value, true)}
-              onReset={resetAdjustment}
-              onResetAll={resetAllAdjustments}
-              onCommit={commitHistory}
-            />
-          </TabsContent>
+          <Tabs
+            value={ui.mode}
+            onValueChange={(value) => {
+              if (value === "adjust" || value === "crop") {
+                onViewTransformReset();
+                setMode(value);
+              }
+            }}
+            className="se-editor-tabs flex flex-col px-1 pt-1"
+          >
+            <TabsContent value="adjust" className="se-editor-panel mt-0">
+              <AdjustPanel
+                activeKey={ui.activeAdjustment}
+                values={project.adjustments}
+                hasWebGL={ui.hasWebGL}
+                onSelect={setActiveAdjustment}
+                onChange={(key, value) => setAdjustment(key, value, true)}
+                onReset={resetAdjustment}
+                onResetAll={resetAllAdjustments}
+                onCommit={commitHistory}
+              />
+            </TabsContent>
 
-          <TabsContent value="crop" className="se-editor-panel mt-0">
-            <CropPanel
-              crop={project.crop}
-              sourceWidth={project.source.width}
-              sourceHeight={project.source.height}
-              onChange={setCrop}
-              onReset={resetCrop}
-              onCommit={commitHistory}
-              onStraightenStart={() => setStraightening(true)}
-              onStraightenEnd={() => setStraightening(false)}
-            />
-          </TabsContent>
+            <TabsContent value="crop" className="se-editor-panel mt-0">
+              <CropPanel
+                crop={project.crop}
+                sourceWidth={project.source.width}
+                sourceHeight={project.source.height}
+                onChange={setCrop}
+                onReset={resetCrop}
+                onCommit={commitHistory}
+                onStraightenStart={() => setStraightening(true)}
+                onStraightenEnd={() => setStraightening(false)}
+              />
+            </TabsContent>
 
-          <TabsList className="se-mode-tabs mx-auto mt-0.5 w-full max-w-[12rem] justify-center gap-4 bg-transparent pb-0.5">
-            <TabsTrigger
-              value="adjust"
-              className="min-h-10 flex-1 flex-col gap-0.5 px-2 text-[10px] font-medium tracking-wide uppercase"
-            >
-              <AdjustIcon />
-              Adjust
-            </TabsTrigger>
-            <TabsTrigger
-              value="crop"
-              className="min-h-10 flex-1 flex-col gap-0.5 px-2 text-[10px] font-medium tracking-wide uppercase"
-            >
-              <CropIcon />
-              Crop
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+            <TabsList className="se-mode-tabs mx-auto mt-0.5 w-full max-w-[12rem] justify-center gap-4 bg-transparent pb-0.5">
+              <TabsTrigger
+                value="adjust"
+                className="min-h-10 flex-1 flex-col gap-0.5 px-2 text-[10px] font-medium tracking-wide uppercase"
+              >
+                <AdjustIcon />
+                Adjust
+              </TabsTrigger>
+              <TabsTrigger
+                value="crop"
+                className="min-h-10 flex-1 flex-col gap-0.5 px-2 text-[10px] font-medium tracking-wide uppercase"
+              >
+                <CropIcon />
+                Crop
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </div>
+      </main>
 
       <ExportSheet
         open={ui.exportOpen}
@@ -226,9 +231,11 @@ export function EditorShell({
         </div>
       </BottomSheet>
 
+      {/* Names the selected tool only — the sliders publish their own values
+          via aria-valuetext, so echoing them here would double every step. */}
       <p className="sr-only" aria-live="polite">
         {ui.mode === "adjust"
-          ? `${ui.activeAdjustment} ${project.adjustments[ui.activeAdjustment]}`
+          ? ADJUSTMENT_META[ui.activeAdjustment].label
           : "Crop tools"}
       </p>
     </div>
