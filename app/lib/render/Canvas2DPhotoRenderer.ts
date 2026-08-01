@@ -12,6 +12,7 @@ import {
   requestedExportDimensions,
 } from "@/app/lib/image/geometry";
 import { drawSourceWithGeometry } from "./canvasDraw";
+import { displayScale } from "./displayScale";
 
 /**
  * Canvas 2D fallback: crop/orientation/export only. Adjustments are no-ops.
@@ -45,17 +46,15 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
     const parent = this.canvas.parentElement;
     const cssW = parent?.clientWidth || this.canvas.clientWidth || 1;
     const cssH = parent?.clientHeight || this.canvas.clientHeight || 1;
-    const dpr = Math.min(
-      typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
-      2,
-    );
+    const dpr = displayScale();
     this.canvas.width = Math.max(1, Math.round(cssW * dpr));
     this.canvas.height = Math.max(1, Math.round(cssH * dpr));
 
     const ctx = this.canvas.getContext("2d");
     if (!ctx) return;
-    ctx.fillStyle = "#f2f2f4";
-    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    // Transparent, so the themed .se-viewport background shows through rather
+    // than the canvas baking in one palette. Export paths flatten separately.
+    ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     const geometry = computeRenderGeometry({
       sourceWidth: project.source.width,
       sourceHeight: project.source.height,

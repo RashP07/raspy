@@ -1,18 +1,27 @@
 "use client";
 
 import {
+  useEffect,
   useLayoutEffect,
   useMemo,
   useRef,
   useState,
+  type CSSProperties,
   type KeyboardEvent,
   type PointerEvent,
 } from "react";
 import { playSliderTick, unlockTickAudio } from "@/app/lib/audio/tick";
 import { cn } from "@/lib/utils";
 
-/** Pixel distance between adjacent minor ticks on the tape. */
-const TICK_PX = 9;
+/** Pixel distance between adjacent ticks. One tick per step, so the indicator
+ *  always lands on a tick rather than in the gap between two. */
+const TICK_PX = 6;
+
+/** How far either side of the indicator the swell reaches, in pixels. */
+const SWELL_PX = 62;
+
+/** Quiet time after the last change before the tape settles flat again. */
+const SETTLE_MS = 420;
 
 export interface RulerSliderProps {
   value: number;
@@ -43,15 +52,6 @@ function isNice(x: number): boolean {
   return [1, 2, 2.5, 5].some((m) => Math.abs(mantissa - m) < 1e-9);
 }
 
-/** Densest nice interval that keeps the tape under ~48 minor ticks. */
-function pickMinorInterval(span: number): number {
-  const options = [0.05, 0.1, 0.2, 0.25, 0.5, 1, 2, 2.5, 5, 10, 20, 25, 50];
-  for (const option of options) {
-    if (span / option <= 48) return option;
-  }
-  return options[options.length - 1];
-}
-
 function defaultFormatLabel(value: number): string {
   return `${Math.round(value * 100) / 100}`;
 }
@@ -77,6 +77,32 @@ export function RulerSlider({
   } | null>(null);
   const lastUnitRef = useRef(0);
   const [width, setWidth] = useState(0);
+  const [wave, setWave] = useState<{ active: boolean; dir: 1 | -1 }>({
+    active: false,
+    dir: 1,
+  });
+  const scrubTimerRef = useRef<number | null>(null);
+
+  /** Only ever called from a real value change, so a tap alone stays flat. */
+  const markScrubbing = (dir: 1 | -1) => {
+    setWave({ active: true, dir });
+    if (scrubTimerRef.current !== null) {
+      window.clearTimeout(scrubTimerRef.current);
+    }
+    scrubTimerRef.current = window.setTimeout(
+      () => setWave((prev) => ({ ...prev, active: false })),
+      SETTLE_MS,
+    );
+  };
+
+  useEffect(
+    () => () => {
+      if (scrubTimerRef.current !== null) {
+        window.clearTimeout(scrubTimerRef.current);
+      }
+    },
+    [],
+  );
 
   useLayoutEffect(() => {
     const node = rootRef.current;
@@ -91,7 +117,8 @@ export function RulerSlider({
 
   const span = Math.max(max - min, 1e-6);
   const stepDecimals = decimalsOf(step);
-  const minorInterval = useMemo(() => pickMinorInterval(span), [span]);
+  // Every reachable value gets its own tick.
+  const minorInterval = step;
   const majorInterval = useMemo(() => {
     const five = minorInterval * 5;
     return isNice(five) ? five : minorInterval * 4;
@@ -100,27 +127,64 @@ export function RulerSlider({
   const ticks = useMemo(() => {
     const start = Math.ceil((min - 1e-9) / minorInterval) * minorInterval;
     const count = Math.floor((max - start) / minorInterval + 1e-9);
-    const majorCount = Math.floor(span / majorInterval) + 1;
-    const labelStride = majorCount > 9 ? 2 : 1;
-    const out: { value: number; major: boolean; label: string | null }[] = [];
+    const out: { value: number; major: boolean }[] = [];
     for (let i = 0; i <= count; i += 1) {
       const raw = start + i * minorInterval;
       const tickValue = Number(raw.toFixed(6));
       const majorIndex = tickValue / majorInterval;
-      const isMajor = Math.abs(majorIndex - Math.round(majorIndex)) < 1e-6;
-      const labelled = isMajor && Math.round(majorIndex) % labelStride === 0;
       out.push({
         value: tickValue,
-        major: isMajor,
-        label: labelled ? formatLabel(tickValue) : null,
+        major: Math.abs(majorIndex - Math.round(majorIndex)) < 1e-6,
       });
     }
     return out;
-  }, [min, max, span, minorInterval, majorInterval, formatLabel]);
+  }, [min, max, minorInterval, majorInterval]);
 
   const tapeWidth = (span / minorInterval) * TICK_PX;
   const xOf = (v: number) => ((v - min) / span) * tapeWidth;
   const offset = width / 2 - xOf(value);
+
+  /* A tick per step can mean hundreds of them; only the ones that can reach the
+     viewport are worth rendering. */
+  const halfWindow = width / 2 + TICK_PX * 8;
+  const visibleTicks = ticks.filter(
+    (tick) => Math.abs(xOf(tick.value) - xOf(value)) <= halfWindow,
+  );
+
+  /**
+   * While scrubbing, ticks swell as they pass under the indicator and settle
+   * again behind it, so the emphasis is a travelling wave rather than a fill
+   * that stays put. At rest the tape is uniform: how far you are from zero is
+   * communicated by the origin dot's distance from the indicator, not by tick
+   * height.
+   *
+   * Transitions live on transform/opacity so the wave animates on the
+   * compositor instead of relaying out ~45 elements every frame.
+   */
+  const emphasisOf = (tickValue: number, major: boolean) => {
+    const rest = major
+      ? { scale: 0.46, opacity: 0.42 }
+      : { scale: 0.34, opacity: 0.22 };
+    if (!wave.active) return rest;
+    // Positive delta sits right of the indicator. Raising the value sweeps the
+    // tape leftwards, so the wake is the ticks that already went past — the
+    // side opposite the oncoming ones. Ticks ahead of the indicator stay flat.
+    const delta = xOf(tickValue) - xOf(value);
+    const trailing = wave.dir > 0 ? delta <= 0 : delta >= 0;
+    if (!trailing) return rest;
+    const falloff = Math.max(0, 1 - Math.abs(delta) / SWELL_PX);
+    const eased = falloff * falloff * (3 - 2 * falloff);
+    // Interpolate each tick between its own rest and its own peak. Adding a
+    // flat amount instead would clip majors against the ceiling first, so they
+    // would finish travelling early and read as leading the minors.
+    const peak = major
+      ? { scale: 1, opacity: 1 }
+      : { scale: 0.82, opacity: 0.8 };
+    return {
+      scale: rest.scale + (peak.scale - rest.scale) * eased,
+      opacity: rest.opacity + (peak.opacity - rest.opacity) * eased,
+    };
+  };
 
   const changeTo = (raw: number) => {
     const clamped = Math.min(max, Math.max(min, raw));
@@ -128,6 +192,7 @@ export function RulerSlider({
       (Math.round(clamped / step) * step).toFixed(stepDecimals),
     );
     if (snapped === value) return;
+    markScrubbing(snapped > value ? 1 : -1);
     if (sound) {
       const unit = Math.round(snapped / minorInterval);
       if (unit !== lastUnitRef.current) {
@@ -199,6 +264,7 @@ export function RulerSlider({
         disabled && "pointer-events-none opacity-40",
         className,
       )}
+      data-scrubbing={wave.active || undefined}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onPointerUp={endDrag}
@@ -214,26 +280,31 @@ export function RulerSlider({
             transform: `translate3d(${offset}px, 0, 0)`,
           }}
         >
-          {ticks.map((tick) => (
-            <span key={tick.value} style={{ left: `${xOf(tick.value)}px` }}>
-              {tick.label !== null ? (
-                <span className="se-ruler-label">{tick.label}</span>
-              ) : null}
+          {origin !== undefined ? (
+            <span
+              className="se-ruler-origin"
+              style={{ left: `${xOf(origin)}px` }}
+            />
+          ) : null}
+          {visibleTicks.map((tick) => {
+            const { scale, opacity } = emphasisOf(tick.value, tick.major);
+            return (
               <span
-                className={cn(
-                  "se-ruler-tick",
-                  tick.major && "se-ruler-tick-major",
-                  origin !== undefined &&
-                    Math.abs(tick.value - origin) < 1e-9 &&
-                    "se-ruler-tick-origin",
-                )}
+                key={tick.value}
+                className="se-ruler-tick"
+                style={
+                  {
+                    left: `${xOf(tick.value)}px`,
+                    "--tick-scale": scale,
+                    "--tick-opacity": opacity,
+                  } as CSSProperties
+                }
               />
-            </span>
-          ))}
+            );
+          })}
         </div>
       </div>
       <div className="se-ruler-center" aria-hidden />
-      <div className="se-ruler-arrow" aria-hidden />
     </div>
   );
 }

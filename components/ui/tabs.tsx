@@ -26,6 +26,23 @@ export function TabsList({
   );
 }
 
+/**
+ * The moving thumb behind the active tab. Base UI publishes the active tab's
+ * box as --active-tab-* vars on this element; `.se-mode-thumb` reads them.
+ */
+export function TabsIndicator({
+  className,
+  ...props
+}: ComponentProps<typeof BaseTabs.Indicator>) {
+  return (
+    <BaseTabs.Indicator
+      renderBeforeHydration
+      className={cn("pointer-events-none absolute z-10", className)}
+      {...props}
+    />
+  );
+}
+
 export function TabsTrigger({
   className,
   ...props

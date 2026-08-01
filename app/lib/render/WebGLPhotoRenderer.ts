@@ -13,6 +13,7 @@ import {
 } from "@/app/lib/image/geometry";
 import { ADJUST_FRAG, FULLSCREEN_VERT } from "./shaders";
 import { drawSourceWithGeometry } from "./canvasDraw";
+import { displayScale } from "./displayScale";
 
 function compileShader(
   gl: WebGL2RenderingContext,
@@ -227,10 +228,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
   }
 
   private resizeCanvas(cssWidth: number, cssHeight: number) {
-    const dpr = Math.min(
-      typeof window !== "undefined" ? window.devicePixelRatio || 1 : 1,
-      2,
-    );
+    const dpr = displayScale();
     const w = Math.max(1, Math.round(cssWidth * dpr));
     const h = Math.max(1, Math.round(cssHeight * dpr));
     if (this.canvas.width !== w || this.canvas.height !== h) {
@@ -274,7 +272,9 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     });
 
     gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-    gl.clearColor(0.949, 0.949, 0.957, 1);
+    // Transparent, so the themed .se-viewport background shows through rather
+    // than the canvas baking in one palette. Export paths flatten separately.
+    gl.clearColor(0, 0, 0, 0);
     gl.clear(gl.COLOR_BUFFER_BIT);
     const viewportX = Math.round(geometry.fittedRect.x * dpr);
     const viewportY = Math.round(

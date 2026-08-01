@@ -25,6 +25,7 @@ import {
   transformPoint,
   type RenderGeometry,
 } from "@/app/lib/image/geometry";
+import { displayScale } from "@/app/lib/render/displayScale";
 
 type Handle = "move" | "n" | "s" | "e" | "w" | "ne" | "nw" | "se" | "sw";
 
@@ -152,7 +153,7 @@ export function Viewport({
       const container = containerRef.current;
       const geometry = geometryForContainer();
       if (!overlay || !container || !geometry || mode !== "crop") return;
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const dpr = displayScale();
       const width = container.clientWidth;
       const height = container.clientHeight;
       if (
@@ -185,7 +186,9 @@ export function Viewport({
       ctx.shadowColor = "rgba(0,0,0,0.8)";
       ctx.shadowBlur = 4;
       ctx.strokeStyle = "rgba(255,255,255,0.96)";
-      ctx.lineWidth = 1.5;
+      // Even width: at dpr 1 a 1.5 stroke straddles a device pixel row and
+      // renders as two half-lit lines rather than one crisp edge.
+      ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(points[0]!.x, points[0]!.y);
       points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
@@ -615,7 +618,7 @@ export function Viewport({
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div
             role="status"
-            className="se-glass flex items-center gap-3 rounded-full px-4 py-2 text-sm text-[var(--se-fg)]/70"
+            className="se-glass flex items-center gap-2 rounded-full px-3 py-2 text-sm text-[var(--se-fg)]/70"
           >
             <Spinner size={18} decorative />
             Preparing preview
@@ -640,7 +643,7 @@ export function Viewport({
             aria-hidden
           />
           {interacting || straightening ? (
-            <div className="pointer-events-none absolute left-1/2 top-[calc(0.75rem+env(safe-area-inset-top,0px))] -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[12px] tabular-nums whitespace-nowrap text-white backdrop-blur-md">
+            <div className="se-hud-pill pointer-events-none left-1/2 top-[calc(var(--se-hud-inset)+env(safe-area-inset-top,0px))] -translate-x-1/2 text-[12px] tabular-nums">
               {cropLabel}
             </div>
           ) : null}
@@ -648,7 +651,7 @@ export function Viewport({
       ) : null}
 
       {comparing ? (
-        <div className="pointer-events-none absolute left-1/2 top-[calc(0.75rem+env(safe-area-inset-top,0px))] -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white uppercase backdrop-blur-md">
+        <div className="se-hud-pill pointer-events-none left-1/2 top-[calc(var(--se-hud-inset)+env(safe-area-inset-top,0px))] -translate-x-1/2 text-[12px] font-semibold tracking-[0.14em] uppercase">
           Original
         </div>
       ) : null}
@@ -656,7 +659,7 @@ export function Viewport({
       {mode === "adjust" && viewTransform.zoom > 1 ? (
         <button
           type="button"
-          className="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] end-[calc(0.75rem+env(safe-area-inset-right,0px))] min-h-10 rounded-full bg-black/65 px-3 text-[12px] font-medium tabular-nums whitespace-nowrap text-white backdrop-blur-md"
+          className="se-hud-pill inline-flex min-h-10 items-center bottom-[calc(var(--se-hud-inset)+env(safe-area-inset-bottom,0px))] end-[calc(var(--se-hud-inset)+env(safe-area-inset-right,0px))] text-[12px] font-medium tabular-nums"
           aria-label={`Fit to screen, currently ${viewTransform.zoom.toFixed(1)}× zoom`}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })}

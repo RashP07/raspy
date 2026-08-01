@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Sans } from "next/font/google";
+import { Geist } from "next/font/google";
+import { THEME_COLORS, THEME_INIT_SCRIPT } from "./lib/theme";
 import "./globals.css";
 
-const plex = IBM_Plex_Sans({
+// No `weight`: that pulls the variable font, so every weight the UI uses comes
+// from one file instead of three static cuts.
+const geist = Geist({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-plex",
+  variable: "--font-geist",
   display: "swap",
 });
 
@@ -36,8 +38,11 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#f2f2f4",
-  colorScheme: "light",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: THEME_COLORS.light },
+    { media: "(prefers-color-scheme: dark)", color: THEME_COLORS.dark },
+  ],
+  colorScheme: "light dark",
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
@@ -49,15 +54,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" className={geist.variable} suppressHydrationWarning>
       <head>
+        {/* Must run before first paint, or a stored override flashes light. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body
-        className={`${plex.variable} relative bg-background text-foreground antialiased`}
-      >
+      <body className="relative bg-background text-foreground antialiased">
         <div className="root">{children}</div>
         <script
           dangerouslySetInnerHTML={{

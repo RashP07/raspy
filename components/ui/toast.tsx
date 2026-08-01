@@ -1,8 +1,9 @@
 "use client";
 
 import { Toast } from "@base-ui/react/toast";
-import type { ReactNode } from "react";
+import { useCallback, useMemo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { CloseIcon } from "./icons";
 
 export type ToastStatus = "neutral" | "info" | "success" | "error";
 
@@ -14,7 +15,7 @@ export interface ShowToastInput {
 }
 
 const statusAccent: Record<ToastStatus, string> = {
-  neutral: "border-black/10",
+  neutral: "border-[var(--se-hairline)]",
   info: "border-sky-500/40",
   success: "border-emerald-500/40",
   error: "border-red-500/45",
@@ -44,10 +45,10 @@ function ToastList() {
         toast={toast}
         className={cn(
           "absolute left-0 right-0 top-0 z-[calc(1000-var(--toast-index))] box-border",
-          "origin-top rounded-2xl border border-black/10 bg-[var(--se-surface)]/95 text-[var(--se-fg)] backdrop-blur-md",
-          "shadow-[0_8px_28px_rgb(0_0_0/0.12)]",
+          "origin-top rounded-2xl border border-[var(--se-hairline)] bg-[var(--se-surface)]/95 text-[var(--se-fg)] backdrop-blur-md",
+          "shadow-[0_8px_28px_var(--se-shadow-strong)]",
           "h-[var(--toast-height)] data-expanded:h-[var(--toast-height)]",
-          "[transform:translateY(calc(var(--toast-index)*-0.35rem))_scale(calc(1-var(--toast-index)*0.04))]",
+          "[transform:translateY(calc(var(--toast-index)*-0.25rem))_scale(calc(1-var(--toast-index)*0.04))]",
           "data-expanded:[transform:translateY(calc(var(--toast-index)*(var(--toast-height)+0.5rem)))]",
           "transition-[transform,translate,opacity] duration-300 ease-out",
           "data-starting-style:-translate-y-4 data-starting-style:opacity-0",
@@ -55,26 +56,16 @@ function ToastList() {
           statusAccent[status],
         )}
       >
-        <Toast.Content className="flex items-start gap-3 px-3.5 py-3">
+        <Toast.Content className="flex items-start gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <Toast.Title className="text-sm font-semibold" />
             <Toast.Description className="text-xs break-words text-[var(--se-muted)]" />
           </div>
           <Toast.Close
-            className="shrink-0 rounded-md p-1.5 text-[var(--se-muted)] hover:bg-black/5 hover:text-[var(--se-fg)]"
+            className="shrink-0 rounded-md p-2 text-[var(--se-muted)] hover:bg-[var(--se-hover)] hover:text-[var(--se-fg)]"
             aria-label="Dismiss notification"
           >
-            <svg
-              aria-hidden
-              viewBox="0 0 16 16"
-              className="size-3.5"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.75"
-              strokeLinecap="round"
-            >
-              <path d="M4 4l8 8M12 4l-8 8" />
-            </svg>
+            <CloseIcon size={14} />
           </Toast.Close>
         </Toast.Content>
       </Toast.Root>
@@ -82,23 +73,31 @@ function ToastList() {
   });
 }
 
+/**
+ * Base UI memoizes its manager on the `toasts` array, so the object identity
+ * changes every time a toast is added. Callers that list `showToast` as an
+ * effect dependency would then re-run on every add and loop forever, so bind
+ * only to `add`/`close`, which are stable for the life of the provider.
+ */
 export function useToast() {
-  const manager = Toast.useToastManager();
+  const { add, close } = Toast.useToastManager();
 
-  return {
-    showToast: ({
-      title,
-      description,
-      status = "neutral",
-      timeout,
-    }: ShowToastInput) =>
-      manager.add({
+  const showToast = useCallback(
+    ({ title, description, status = "neutral", timeout }: ShowToastInput) =>
+      add({
         title,
         description,
         type: status,
         // Base UI: timeout 0 prevents auto-dismiss; errors stay until dismissed.
         timeout: timeout ?? (status === "error" ? 0 : undefined),
       }),
-    dismissToast: (id?: string) => manager.close(id),
-  };
+    [add],
+  );
+
+  const dismissToast = useCallback((id?: string) => close(id), [close]);
+
+  return useMemo(
+    () => ({ showToast, dismissToast }),
+    [showToast, dismissToast],
+  );
 }

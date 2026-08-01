@@ -6,21 +6,25 @@ import { cn } from "@/lib/utils";
 
 const variants = {
   primary:
-    "bg-[var(--se-accent)] text-white hover:not-data-disabled:bg-[var(--se-accent-hover)] hover:not-data-disabled:shadow-[0_2px_8px_rgb(0_0_0/0.18)] active:not-data-disabled:brightness-90",
+    "bg-[var(--se-accent)] text-[var(--se-accent-fg)] hover:not-data-disabled:bg-[var(--se-accent-hover)] hover:not-data-disabled:shadow-[0_2px_8px_var(--se-shadow-strong)] active:not-data-disabled:brightness-90",
   danger:
-    "bg-[var(--se-danger)] text-white hover:not-data-disabled:brightness-110 active:not-data-disabled:brightness-95",
+    "bg-[var(--se-danger)] text-[var(--se-danger-fg)] hover:not-data-disabled:brightness-110 active:not-data-disabled:brightness-95",
   ghost:
-    "bg-transparent text-inherit hover:not-data-disabled:bg-black/5 active:not-data-disabled:bg-black/10",
+    "bg-transparent text-inherit hover:not-data-disabled:bg-[var(--se-hover)] active:not-data-disabled:bg-[var(--se-selected-bg)]",
 } as const;
 
 const pressScale =
   "active:not-data-disabled:scale-[0.96] transition-[color,background-color,border-color,box-shadow,scale,filter] duration-150 ease-out";
 
+/* Heights are touch targets, not decoration: every size except `sm` (which is
+   only ever used for pills sitting inside a taller row) clears 44px on its
+   own, so callers no longer bolt a `min-h-11` onto whatever they picked. */
 const sizes = {
-  sm: "h-8 min-h-8 gap-1.5 px-2.5 text-xs",
-  md: "h-10 min-h-10 gap-2 px-3 text-sm",
-  lg: "h-12 min-h-12 gap-2 px-4 text-sm",
-  icon: "size-10 min-h-10 min-w-10 p-0",
+  sm: "h-9 min-h-9 gap-1.5 px-3.5 text-[14px]",
+  md: "h-11 min-h-11 gap-2 px-3 text-[16px]",
+  lg: "h-12 min-h-12 gap-2 px-4 text-[16px]",
+  icon: "size-11 min-h-11 min-w-11 p-0",
+  "icon-sm": "size-10 min-h-10 min-w-10 p-0",
 } as const;
 
 export type ButtonProps = ComponentProps<typeof BaseButton> & {

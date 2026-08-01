@@ -150,7 +150,7 @@ export function RangeSlider({
         className="relative z-10 w-full touch-none select-none"
       >
         <Slider.Control className="flex w-full items-center py-2.5">
-          <Slider.Track className="relative h-[2px] w-full rounded-full bg-black/15">
+          <Slider.Track className="relative h-[2px] w-full rounded-full bg-[var(--se-hairline-strong)]">
             <Slider.Indicator className="rounded-full bg-[var(--se-active)]" />
             <Slider.Thumb
               aria-label={ariaLabel}

@@ -104,7 +104,7 @@ function OptionChip({
       disabled={disabled}
       onClick={onClick}
       onKeyDown={onKeyDown}
-      className="min-h-10 flex-1 rounded-lg border border-[var(--se-hairline)] text-[14px] font-medium transition-[color,background-color,box-shadow,scale] duration-150 ease-out not-disabled:hover:bg-black/[0.04] not-disabled:active:scale-[0.96] disabled:opacity-40"
+      className="min-h-11 flex-1 rounded-lg border border-[var(--se-hairline)] text-[14px] font-medium transition-[color,background-color,box-shadow,scale] duration-150 ease-out not-disabled:hover:bg-[var(--se-hover)] not-disabled:active:scale-[0.96] disabled:opacity-40"
       style={{
         color: active ? "var(--se-active)" : "var(--se-muted)",
         background: active ? "var(--se-selected-bg)" : "transparent",
@@ -205,7 +205,7 @@ export function ExportSheet({
             ))}
           </div>
           {showJpegAlphaWarning ? (
-            <p className={`text-[13px] ${MUTED}`}>
+            <p className={`text-[14px] ${MUTED}`}>
               JPEG has no transparency — transparent areas become white.
             </p>
           ) : null}
@@ -229,11 +229,11 @@ export function ExportSheet({
               />
             ))}
           </div>
-          <p className={`text-[13px] tabular-nums whitespace-nowrap ${MUTED}`}>
+          <p className={`text-[14px] tabular-nums whitespace-nowrap ${MUTED}`}>
             {dimensions.actual.width} × {dimensions.actual.height}&nbsp;px
           </p>
           {dimensions.reduced ? (
-            <p className={`text-[13px] text-pretty ${MUTED}`}>
+            <p className={`text-[14px] text-pretty ${MUTED}`}>
               Reduced from {dimensions.requested.width} ×{" "}
               {dimensions.requested.height} px — this device can't render a
               larger image.
@@ -242,14 +242,14 @@ export function ExportSheet({
         </section>
 
         {format !== "image/png" ? (
-          <section className="flex flex-col gap-1">
+          <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h3
                 className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}
               >
                 Quality
               </h3>
-              <span className={`tabular-nums text-[13px] font-medium ${MUTED}`}>
+              <span className={`tabular-nums text-[14px] font-medium ${MUTED}`}>
                 {Math.round(quality * 100)}%
               </span>
             </div>
@@ -268,7 +268,7 @@ export function ExportSheet({
         {exporting ? (
           <div className="flex flex-col items-center gap-3 py-2">
             <Spinner size={28} decorative />
-            <p role="status" className={`text-[15px] tabular-nums ${MUTED}`}>
+            <p role="status" className={`text-[16px] tabular-nums ${MUTED}`}>
               {cancelling
                 ? "Cancelling…"
                 : `Saving… ${Math.round((progress ?? 0) * 100)}%`}
@@ -277,8 +277,8 @@ export function ExportSheet({
               <Button
                 ref={stopButtonRef}
                 variant="ghost"
-                size="sm"
-                className={`min-h-11 text-[15px] ${MUTED}`}
+                size="md"
+                className={MUTED}
                 onClick={onCancelExport}
               >
                 Stop saving
@@ -286,11 +286,11 @@ export function ExportSheet({
             ) : null}
           </div>
         ) : (
-          <div className="flex flex-col gap-2 pt-1">
+          <div className="flex flex-col gap-2">
             <Button
               variant="primary"
               size="lg"
-              className="min-h-12 w-full rounded-lg text-[16px] font-medium"
+              className="w-full rounded-lg font-medium"
               onClick={() =>
                 onExport({
                   format,
@@ -304,7 +304,7 @@ export function ExportSheet({
             <Button
               variant="ghost"
               size="md"
-              className="min-h-11 w-full text-[15px] text-[var(--se-muted)]"
+              className="w-full text-[var(--se-muted)]"
               onClick={() => onOpenChange(false)}
             >
               Close

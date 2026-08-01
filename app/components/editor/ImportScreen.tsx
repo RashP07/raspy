@@ -39,7 +39,7 @@ export function ImportScreen({
 
   return (
     <div
-      className="flex h-full min-h-0 w-full flex-col items-center justify-center px-6"
+      className="flex h-full min-h-0 w-full flex-col items-center justify-center"
       style={{
         background: "var(--se-bg)",
         color: "var(--se-fg)",
@@ -56,7 +56,7 @@ export function ImportScreen({
             SimplyEdit
           </h1>
           <p
-            className="max-w-[14rem] text-[15px] leading-snug"
+            className="max-w-[14rem] text-[16px] leading-snug"
             style={{ color: "var(--se-muted)" }}
           >
             Photos and edits never leave this device.
@@ -66,7 +66,7 @@ export function ImportScreen({
         {isBusy ? (
           <div role="status" className="flex flex-col items-center gap-3 py-8">
             <Spinner size={28} decorative />
-            <p className="text-[15px]" style={{ color: "var(--se-muted)" }}>
+            <p className="text-[16px]" style={{ color: "var(--se-muted)" }}>
               {busy}
             </p>
           </div>
@@ -88,7 +88,7 @@ export function ImportScreen({
             <Button
               variant="primary"
               size="lg"
-              className="min-h-12 w-full max-w-xs rounded-lg text-[16px] font-medium"
+              className="w-full max-w-xs rounded-lg font-medium"
               onClick={() => inputRef.current?.click()}
             >
               Open photo
@@ -96,7 +96,7 @@ export function ImportScreen({
             <div
               className={`hidden min-h-20 w-full items-center justify-center rounded-lg border border-dashed text-[14px] transition-colors md:flex ${
                 dragging
-                  ? "border-[var(--se-fg)]/40 bg-black/[0.03] text-[var(--se-fg)]"
+                  ? "border-[var(--se-fg)]/40 bg-[var(--se-hover)] text-[var(--se-fg)]"
                   : "border-[var(--se-hairline)] text-[var(--se-muted)]"
               }`}
               onDragEnter={(event) => {
@@ -119,7 +119,7 @@ export function ImportScreen({
         {error ? (
           <p
             role="alert"
-            className="text-center text-[15px]"
+            className="text-center text-[16px]"
             style={{ color: "var(--se-danger)" }}
           >
             {error}
@@ -129,7 +129,7 @@ export function ImportScreen({
         {hasDraft && onRestoreDraft && !isBusy ? (
           <button
             type="button"
-            className="min-h-11 text-[15px] font-medium text-[var(--se-muted)] underline-offset-4 transition-colors hover:text-[var(--se-fg)] hover:underline"
+            className="min-h-11 text-[16px] font-medium text-[var(--se-muted)] underline-offset-4 transition-colors hover:text-[var(--se-fg)] hover:underline"
             onClick={onRestoreDraft}
           >
             Continue last edit

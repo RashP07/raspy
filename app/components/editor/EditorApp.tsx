@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { IconProvider } from "@/components/ui/icons";
 import { EditorProvider, useEditor } from "@/app/lib/editor/context";
 import type { ExportOptions } from "@/app/lib/editor/types";
 import { ImportError } from "@/app/lib/image/decode";
@@ -233,9 +234,11 @@ function EditorAppInner() {
 export function EditorApp() {
   return (
     <EditorProvider>
-      <ToastProvider>
-        <EditorAppInner />
-      </ToastProvider>
+      <IconProvider>
+        <ToastProvider>
+          <EditorAppInner />
+        </ToastProvider>
+      </IconProvider>
     </EditorProvider>
   );
 }

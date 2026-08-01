@@ -2,6 +2,12 @@
 
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  FlipHorizontalIcon,
+  FlipVerticalIcon,
+  ResetCropIcon,
+  RotateIcon,
+} from "@/components/ui/icons";
 import { RulerSlider } from "@/components/ui/ruler-slider";
 import type { AspectRatio, CropState } from "@/app/lib/editor/types";
 import {
@@ -127,18 +133,18 @@ export function CropPanel({
 
   return (
     <div
-      className="se-crop-panel flex flex-col gap-1.5 px-2 pb-0 pt-0"
+      className="se-crop-panel"
       style={{
         color: "var(--se-fg)",
         fontFamily: "var(--font-ui)",
       }}
     >
-      <div className="flex items-center justify-center gap-3 px-1">
-        <div className="flex items-center gap-1.5">
+      <div className="flex items-center justify-center gap-3">
+        <div className="flex items-center gap-1">
           <Button
             variant="ghost"
-            size="icon"
-            className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
+            size="icon-sm"
+            className="se-control text-[var(--se-fg)]"
             aria-label="Rotate right 90 degrees"
             onClick={() =>
               onChange(
@@ -154,8 +160,8 @@ export function CropPanel({
           </Button>
           <Button
             variant="ghost"
-            size="icon"
-            className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
+            size="icon-sm"
+            className="se-control text-[var(--se-fg)]"
             aria-label="Flip horizontal"
             onClick={() => onChange({ flipX: !crop.flipX }, false)}
           >
@@ -163,8 +169,8 @@ export function CropPanel({
           </Button>
           <Button
             variant="ghost"
-            size="icon"
-            className="se-control min-h-10 min-w-10 text-[var(--se-fg)]"
+            size="icon-sm"
+            className="se-control text-[var(--se-fg)]"
             aria-label="Flip vertical"
             onClick={() => onChange({ flipY: !crop.flipY }, false)}
           >
@@ -172,8 +178,8 @@ export function CropPanel({
           </Button>
           <Button
             variant="ghost"
-            size="icon"
-            className="se-control min-h-10 min-w-10 text-[var(--se-muted)]"
+            size="icon-sm"
+            className="se-control text-[var(--se-muted)]"
             aria-label="Reset crop"
             onClick={onReset}
           >
@@ -183,7 +189,7 @@ export function CropPanel({
         <div
           role="radiogroup"
           aria-label="Crop tool"
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-1"
           onKeyDown={handleToolKeyDown}
         >
           {CROP_TOOLS.map((tool) => {
@@ -196,7 +202,7 @@ export function CropPanel({
                 aria-checked={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setActiveTool(tool.value)}
-                className="min-h-10 rounded-lg px-2.5 text-[13px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-black/[0.04] active:scale-[0.96]"
+                className="min-h-10 rounded-lg px-3 text-[14px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-[var(--se-hover)] active:scale-[0.96]"
                 style={{
                   color: active ? "var(--se-active)" : "var(--se-muted)",
                 }}
@@ -210,7 +216,7 @@ export function CropPanel({
 
       {activeTool === "frame" ? (
         <div
-          className="scrollbar-none -mx-1 flex gap-1.5 overflow-x-auto px-2 pb-1"
+          className="se-bleed-inset scrollbar-none flex gap-1 overflow-x-auto py-1"
           role="radiogroup"
           aria-label="Aspect ratio"
           onKeyDown={handleAspectKeyDown}
@@ -225,7 +231,7 @@ export function CropPanel({
                 aria-checked={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setAspect(option.value)}
-                className="min-h-9 shrink-0 rounded-lg px-3 text-[13px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-black/[0.04] active:scale-[0.96]"
+                className="min-h-10 shrink-0 rounded-lg px-3 text-[14px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-[var(--se-hover)] active:scale-[0.96]"
                 style={{
                   color: active ? "var(--se-active)" : "var(--se-muted)",
                   background: active ? "var(--se-selected-bg)" : "transparent",
@@ -240,13 +246,13 @@ export function CropPanel({
           })}
         </div>
       ) : (
-        <div className="flex flex-col gap-0.5 px-2">
-          <div className="flex items-center justify-between px-1">
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center justify-between">
             <span className="text-[12px] font-medium text-[var(--se-fg)]">
               Straighten
             </span>
             <span
-              className="tabular-nums text-[13px] font-medium"
+              className="tabular-nums text-[14px] font-medium"
               style={{
                 color:
                   crop.straighten === 0
@@ -284,87 +290,5 @@ export function CropPanel({
         </div>
       )}
     </div>
-  );
-}
-
-function RotateIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M20 9V5h-4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <path
-        d="M20 5a9 9 0 1 0 2.2 8.5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
-function FlipHorizontalIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M12 3v18"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeDasharray="2.5 2.5"
-      />
-      <path
-        d="M8 8 4 12l4 4M16 8l4 4-4 4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function FlipVerticalIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M3 12h18"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeDasharray="2.5 2.5"
-      />
-      <path
-        d="M8 8 12 4l4 4M8 16l4 4 4-4"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
-  );
-}
-
-function ResetCropIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 12a8 8 0 1 0 2.3-5.7"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <path
-        d="M4 4v5h5"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }

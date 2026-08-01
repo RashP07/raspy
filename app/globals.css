@@ -1,51 +1,88 @@
 @import "tailwindcss";
 
+/* Every color is declared once as light-dark(light, dark); `color-scheme`
+   below picks the branch, so there is no second palette to keep in sync. */
 :root {
-  --background: #f2f2f4;
-  --foreground: #1c1c1e;
-  --card: #ffffff;
-  --card-foreground: #1c1c1e;
-  --popover: #ffffff;
-  --popover-foreground: #1c1c1e;
-  --primary: #1c1c1e;
-  --primary-foreground: #ffffff;
-  --secondary: #e9e9ec;
-  --secondary-foreground: #1c1c1e;
-  --muted: #e9e9ec;
-  --muted-foreground: #66666e;
-  --accent: #1c1c1e;
-  --accent-foreground: #ffffff;
-  --destructive: #c32026;
-  --destructive-foreground: #ffffff;
-  --border: #dcdce0;
-  --input: #dcdce0;
-  --ring: #1c1c1e;
-  --panel: #f2f2f4;
-  --panel-elevated: #ffffff;
-  --danger: #c32026;
+  color-scheme: light dark;
+
+  --background: light-dark(#f2f2f4, #0b0b0c);
+  --foreground: light-dark(#1c1c1e, #f2f2f5);
+  --card: light-dark(#ffffff, #1a1a1d);
+  --card-foreground: light-dark(#1c1c1e, #f2f2f5);
+  --popover: light-dark(#ffffff, #1a1a1d);
+  --popover-foreground: light-dark(#1c1c1e, #f2f2f5);
+  --primary: light-dark(#1c1c1e, #f2f2f5);
+  --primary-foreground: light-dark(#ffffff, #141416);
+  --secondary: light-dark(#e9e9ec, #232327);
+  --secondary-foreground: light-dark(#1c1c1e, #f2f2f5);
+  --muted: light-dark(#e9e9ec, #232327);
+  --muted-foreground: light-dark(#66666e, #9c9ca6);
+  --accent: light-dark(#1c1c1e, #f2f2f5);
+  --accent-foreground: light-dark(#ffffff, #141416);
+  --destructive: light-dark(#c32026, #ff6169);
+  --destructive-foreground: light-dark(#ffffff, #2b0509);
+  --border: light-dark(#dcdce0, #2e2e33);
+  --input: light-dark(#dcdce0, #2e2e33);
+  --ring: light-dark(#1c1c1e, #f2f2f5);
+  --panel: light-dark(#f2f2f4, #0b0b0c);
+  --panel-elevated: light-dark(#ffffff, #1a1a1d);
+  --danger: light-dark(#c32026, #ff6169);
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
-  --font-ui:
-    var(--font-plex), "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
-  --se-bg: #f2f2f4;
-  --se-chrome: #f2f2f4;
-  --se-surface: #ffffff;
-  --se-fg: #1c1c1e;
-  --se-muted: #66666e;
-  --se-accent: #1c1c1e;
-  --se-accent-hover: #34343c;
-  --se-active: #0a0a0a;
-  --se-danger: #c32026;
-  --se-hairline: rgb(0 0 0 / 0.08);
-  --se-hairline-strong: rgb(0 0 0 / 0.14);
-  --se-hover: rgb(0 0 0 / 0.05);
-  --se-selected-bg: rgb(0 0 0 / 0.06);
-  --se-ruler-tick: rgb(0 0 0 / 0.16);
-  --se-ruler-tick-major: rgb(0 0 0 / 0.34);
+  /* The fallback inside var() matters: an undefined custom property would
+     invalidate the whole declaration and drop the app to the default serif. */
+  --font-ui: var(--font-geist, "Geist"), ui-sans-serif, system-ui, sans-serif;
+  --se-bg: light-dark(#f2f2f4, #0b0b0c);
+  --se-chrome: light-dark(#f2f2f4, #0b0b0c);
+  --se-surface: light-dark(#ffffff, #1a1a1d);
+  /* Sits *above* --se-surface: the segmented thumb, and anything that has to
+     read as lifted. In dark it is lighter than the surface, not white. */
+  --se-raised: light-dark(#ffffff, #45454d);
+  --se-fg: light-dark(#1c1c1e, #f2f2f5);
+  --se-muted: light-dark(#66666e, #9c9ca6);
+  --se-accent: light-dark(#1c1c1e, #f2f2f5);
+  --se-accent-hover: light-dark(#34343c, #dcdce2);
+  --se-accent-fg: light-dark(#ffffff, #141416);
+  --se-active: light-dark(#0a0a0a, #ffffff);
+  --se-danger: light-dark(#c32026, #ff6169);
+  --se-danger-fg: light-dark(#ffffff, #2b0509);
+  --se-hairline: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
+  --se-hairline-strong: light-dark(rgb(0 0 0 / 0.14), rgb(255 255 255 / 0.18));
+  --se-hover: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
+  --se-selected-bg: light-dark(rgb(0 0 0 / 0.075), rgb(255 255 255 / 0.11));
+  --se-track: light-dark(rgb(0 0 0 / 0.075), rgb(0 0 0 / 0.32));
+  --se-ruler-tick: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.22));
+  --se-ruler-tick-major: light-dark(rgb(0 0 0 / 0.34), rgb(255 255 255 / 0.42));
+  --se-glass: light-dark(rgb(255 255 255 / 0.78), rgb(28 28 32 / 0.74));
+  --se-shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
+  --se-shadow-strong: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
+  /* Dark surfaces read as lifted by a top highlight, not by a drop shadow. */
+  --se-top-highlight: light-dark(transparent, rgb(255 255 255 / 0.07));
   --se-stage-max: 100%;
-  --se-shell-bg: #e6e6ea;
+  --se-shell-bg: light-dark(#e6e6ea, #08080a);
+  /* Spacing is a 4px ramp. Half-steps (6px) are allowed where an icon sits
+     against its own label; anything else picks a rung, so no more one-off
+     values like 0.15rem or 0.85rem that relate to nothing around them. */
+  --se-space-1: 0.25rem;
+  --se-space-2: 0.5rem;
+  --se-space-3: 0.75rem;
+  --se-space-4: 1rem;
+  /* Where content optically aligns with the stage edge. Everything that
+     stacks in the chrome — panel rows, sheet sections — resolves to this. */
+  --se-gutter: var(--se-space-4);
+  /* Distance from the viewport edge to anything floating over the photo. */
+  --se-hud-inset: var(--se-space-3);
+}
+
+/* An explicit choice wins over the OS; absent the attribute, the OS decides. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
 }
 
 @theme inline {
@@ -101,10 +138,30 @@ body {
   overflow: hidden;
 }
 
+/* No `button { font: inherit }` here: Tailwind's preflight already does it from
+   inside @layer base, where utilities can still override it. Repeating it
+   unlayered — as this file used to — outranks every utility, which silently
+   pinned every button in the app to 16px/400 and killed its own `font-medium`. */
+
+/* Tailwind v4's reset drops the UA pointer cursor, so put it back on anything
+   that behaves like a button — and take it away again once disabled. */
 button,
-input,
-[role="button"] {
-  font: inherit;
+summary,
+a[href],
+label[for],
+[role="button"],
+[role="tab"],
+[role="radio"],
+[role="option"],
+[role="menuitem"],
+[role="switch"] {
+  cursor: pointer;
+}
+
+button:disabled,
+[aria-disabled="true"],
+[data-disabled] {
+  cursor: default;
 }
 
 :focus-visible {
@@ -135,9 +192,42 @@ input,
   display: none;
 }
 
+/* The toolbar sits on the same gutter as everything below it, so the trailing
+   Save pill's edge lines up with the ruler and the panel rows.
+
+   The block padding is one step under the gutter on purpose: the 36px pill
+   centres inside the 44px touch row, and that centring already supplies the
+   missing 4px. The result is a pill inset equally from the top and the right,
+   which is what reads as square in the stage's rounded corner. Symmetric top
+   and bottom, so the row sits in the middle of the band rather than riding
+   against its top edge. */
 .se-toolbar {
   border-color: transparent;
   background: var(--se-chrome);
+  padding-block: max(var(--se-space-3), env(safe-area-inset-top))
+    var(--se-space-3);
+  padding-inline: max(var(--se-gutter), env(safe-area-inset-left))
+    max(var(--se-gutter), env(safe-area-inset-right));
+}
+
+/* A control with a background — the Save pill — aligns its *box* to the gutter.
+   A ghost control has no box at rest, so aligning its box would read as a gap;
+   it pulls back by its own padding to put its *label* on the gutter instead.
+   The offset must match the button size's horizontal padding (`md` is px-3). */
+.se-edge-start {
+  margin-inline-start: -0.75rem;
+}
+
+/* Cancels the gutter so a scroller can run to the true edge of the deck. */
+.se-bleed {
+  margin-inline: calc(var(--se-gutter) * -1);
+}
+
+/* Same, but hands the gutter back as padding, so the first and last item still
+   line up with the rows above while the scroll itself stays edge-to-edge. */
+.se-bleed-inset {
+  margin-inline: calc(var(--se-gutter) * -1);
+  padding-inline: var(--se-gutter);
 }
 
 .se-control {
@@ -154,20 +244,161 @@ input,
 
 /* The container is clipped, so the ring has to sit inside its own bounds. */
 .se-viewport:focus-visible {
-  outline-offset: -3px;
+  outline-offset: -4px;
 }
 
 .se-tool-deck {
+  /* Only the safe area: the panels inside carry the gutter themselves, so
+     insetting here too would push their content past it. */
+  padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
+  border-radius: 20px 20px 0 0;
+  background: var(--se-surface);
+  box-shadow:
+    0 -10px 30px var(--se-shadow),
+    inset 0 1px 0 var(--se-top-highlight);
+}
+
+/* Holds whichever panel is active. The height cap lives here, not on the deck,
+   so the mode bar below can never be scrolled out of reach. */
+.se-panel-stack {
   max-height: min(248px, 45dvh);
   overflow-y: auto;
   overscroll-behavior: contain;
-  border-radius: 20px 20px 0 0;
-  background: var(--se-surface);
-  box-shadow: 0 -10px 30px rgb(0 0 0 / 0.06);
+  /* The height animation briefly overflows, which would flash a scrollbar on
+     every mode switch. Still scrollable, just not drawn. */
+  scrollbar-width: none;
+}
+
+.se-panel-stack::-webkit-scrollbar {
+  display: none;
+}
+
+.se-panel-stack[data-ready] {
+  transition: height 320ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+/* Both panels share one rhythm, declared once, so switching modes cannot shift
+   the deck's inner edges or the spacing between its rows. */
+.se-adjust-panel,
+.se-crop-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--se-space-2);
+  padding-inline: var(--se-gutter);
+}
+
+/* Entering panel settles in rather than appearing mid-animation. */
+.se-editor-panel:not([hidden]) {
+  animation: se-panel-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes se-panel-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Pinned footer: fixed spacing below the switcher regardless of panel height.
+   Matches the deck's top inset, so the switcher sits in an even band. */
+.se-mode-bar {
+  display: flex;
+  flex-shrink: 0;
+  justify-content: center;
+  padding-top: var(--se-space-2);
+  padding-bottom: max(var(--se-space-2), env(safe-area-inset-bottom));
+}
+
+/* Mode switcher — a segmented control: grey track, one raised thumb that
+   slides to the active tab. Self-contained, so centering reads as deliberate. */
+.se-mode-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px;
+  border-radius: 999px;
+  background: var(--se-track);
+}
+
+.se-mode-thumb {
+  top: 0;
+  left: 0;
+  width: var(--active-tab-width);
+  height: var(--active-tab-height);
+  translate: var(--active-tab-left) var(--active-tab-top);
+  border-radius: 999px;
+  background: var(--se-raised);
+  box-shadow:
+    0 0 0 1px var(--se-hairline),
+    0 1px 2px var(--se-shadow-strong),
+    inset 0 1px 0 var(--se-top-highlight);
+  transition:
+    translate 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    width 260ms cubic-bezier(0.32, 0.72, 0, 1),
+    height 260ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.se-mode-tab {
+  z-index: 20;
+  min-height: 40px;
+  gap: 6px;
+  border-radius: 999px;
+  padding-inline: 16px;
+  font-size: 14px;
+  /* Constant weight: a bolder active label would reflow the inactive one. */
+  font-weight: 500;
 }
 
 .se-mode-tabs [data-active] {
   color: var(--se-active);
+}
+
+/* Scroll affordance: mask the dials themselves so the fade always resolves to
+   whatever sits behind the deck, instead of a gradient guessing at the color. */
+@property --se-fade-start {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+@property --se-fade-end {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* Leading and trailing room equal to half the viewport minus half a chip, so
+   the first and last dial can still sit dead centre when selected. */
+.se-chip-track {
+  padding-inline: calc(50% - 2.25rem);
+}
+
+.se-chip-scroller {
+  --se-fade-start: 0px;
+  --se-fade-end: 0px;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--se-fade-start),
+    #000 calc(100% - var(--se-fade-end)),
+    transparent 100%
+  );
+  transition:
+    --se-fade-start 200ms ease,
+    --se-fade-end 200ms ease;
+}
+
+.se-chip-scroller[data-overflow-start] {
+  --se-fade-start: 40px;
+}
+
+.se-chip-scroller[data-overflow-end] {
+  --se-fade-end: 40px;
 }
 
 .se-dial {
@@ -177,33 +408,41 @@ input,
   height: 52px;
   place-items: center;
   border-radius: 50%;
-  border: 1.5px solid var(--se-hairline-strong);
-  background: var(--se-surface);
+  border: 2px solid var(--se-hairline);
+  background: transparent;
   transition:
     background-color 180ms ease,
-    border-color 180ms ease,
-    box-shadow 180ms ease;
+    border-color 180ms ease;
 }
 
 .se-dial[data-active] {
   border-color: transparent;
-  background: var(--se-fg);
-  box-shadow:
-    0 0 0 2.5px var(--se-surface),
-    0 0 0 4px var(--se-hairline-strong),
-    0 2px 8px rgb(0 0 0 / 0.22);
+  background: var(--se-selected-bg);
 }
 
-.se-dial[data-active] .se-dial-icon {
-  color: #ffffff;
+@media (hover: hover) {
+  .se-chip-scroller button:not(:disabled):hover .se-dial:not([data-active]) {
+    border-color: var(--se-hairline-strong);
+    background: var(--se-hover);
+  }
 }
 
 .se-dial-ring {
   position: absolute;
-  inset: -1.5px;
+  inset: -2px;
   width: 52px;
   height: 52px;
   transform: rotate(-90deg);
+}
+
+/* The active dial swaps its icon for the live value; tabular figures stop the
+   number jittering as it counts. */
+.se-dial-value {
+  font-size: 14px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  line-height: 1;
 }
 
 .se-dial-icon {
@@ -215,16 +454,17 @@ input,
   transition: color 180ms ease;
 }
 
-/* Tape-measure slider — the tape scrubs under a fixed center indicator */
+/* Tape-measure slider — the tape scrubs under a fixed centre indicator, and
+   ticks swell toward the current value the way the iOS Photos tape does. */
 .se-ruler {
   position: relative;
-  height: 62px;
+  height: 52px;
   overflow: hidden;
   touch-action: none;
   cursor: ew-resize;
   user-select: none;
   -webkit-user-select: none;
-  outline-offset: -3px;
+  outline-offset: -4px;
 }
 
 /* The fade lives on an inner layer so it cannot eat the focus ring. */
@@ -235,15 +475,15 @@ input,
   -webkit-mask-image: linear-gradient(
     to right,
     transparent 0%,
-    #000 15%,
-    #000 85%,
+    #000 11%,
+    #000 89%,
     transparent 100%
   );
   mask-image: linear-gradient(
     to right,
     transparent 0%,
-    #000 15%,
-    #000 85%,
+    #000 11%,
+    #000 89%,
     transparent 100%
   );
 }
@@ -256,64 +496,51 @@ input,
   will-change: transform;
 }
 
-.se-ruler-tape > span {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-}
-
-.se-ruler-label {
-  position: absolute;
-  top: 2px;
-  transform: translateX(-50%);
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--se-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-}
-
 .se-ruler-tick {
   position: absolute;
-  top: 31px;
-  width: 1.5px;
-  height: 10px;
-  border-radius: 1px;
-  background: var(--se-ruler-tick);
+  bottom: 12px;
+  width: 2px;
+  height: 28px;
+  /* Fully rounded, so every tick reads as a capsule rather than a bar. */
+  border-radius: 999px;
+  background: var(--se-fg);
+  opacity: var(--tick-opacity, 0.26);
+  /* Scale from the baseline so every tick shares a bottom edge. */
+  transform: translateX(-50%) scaleY(var(--tick-scale, 0.4));
+  transform-origin: bottom;
+  /* Settling back to flat is slower than the swell, so releasing reads as the
+     tape relaxing rather than snapping. */
+  transition:
+    transform 300ms cubic-bezier(0.22, 0.61, 0.36, 1),
+    opacity 300ms ease-out;
+}
+
+.se-ruler[data-scrubbing] .se-ruler-tick {
+  transition-duration: 80ms;
+}
+
+/* Marks where zero sits on the tape, the way Photos dots the origin. */
+.se-ruler-origin {
+  position: absolute;
+  bottom: 42px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--se-muted);
+  opacity: 0.75;
   transform: translateX(-50%);
 }
 
-.se-ruler-tick-major {
-  top: 27px;
-  height: 16px;
-  background: var(--se-ruler-tick-major);
-}
-
-.se-ruler-tick-origin {
-  background: var(--se-fg);
-}
-
+/* Taller and heavier than any tick, so it reads as the indicator without
+   needing a second colour in an otherwise monochrome palette. */
 .se-ruler-center {
   position: absolute;
   left: 50%;
-  top: 24px;
-  width: 2px;
-  height: 21px;
-  border-radius: 1px;
+  bottom: 8px;
+  width: 4px;
+  height: 34px;
+  border-radius: 999px;
   background: var(--se-fg);
-  transform: translateX(-50%);
-  pointer-events: none;
-}
-
-.se-ruler-arrow {
-  position: absolute;
-  left: 50%;
-  top: 50px;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-bottom: 7px solid var(--se-fg);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -344,13 +571,15 @@ input,
   position: relative;
   overflow: hidden;
   border-radius: 10px;
-  background: rgb(0 0 0 / 0.045);
-  padding: 0.15rem 0.85rem;
+  background: var(--se-hover);
+  padding: 2px var(--se-space-3);
 }
 
+/* Inset horizontally to the well's own padding so tick 0% lands on the track's
+   start; vertically it is centred, so equal insets are all this needs. */
 .se-slider-ticks {
   position: absolute;
-  inset: 0.55rem 0.85rem;
+  inset: 0 var(--se-space-3);
   z-index: 0;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(
@@ -372,22 +601,35 @@ input,
 .se-slider-tick {
   position: absolute;
   top: 50%;
-  width: 1px;
-  height: 7px;
-  background: rgb(0 0 0 / 0.16);
+  width: 2px;
+  height: 8px;
+  background: var(--se-ruler-tick);
   transform: translate(-50%, -50%);
 }
 
 .se-slider-tick-major {
   height: 12px;
-  background: rgb(0 0 0 / 0.34);
+  background: var(--se-ruler-tick-major);
 }
 
 .se-glass {
-  background: rgb(255 255 255 / 0.78);
+  background: var(--se-glass);
   border: 1px solid var(--se-hairline);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
+}
+
+/* Every readout floating over the photo — crop size, compare, zoom — is the
+   same pill, so they stay interchangeable instead of drifting apart. */
+.se-hud-pill {
+  position: absolute;
+  border-radius: 999px;
+  padding: var(--se-space-1) var(--se-space-3);
+  background: rgb(0 0 0 / 0.65);
+  color: #fff;
+  white-space: nowrap;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 @media (min-width: 768px) {
@@ -448,45 +690,53 @@ input,
     border-radius: 0;
   }
 
-  .se-tool-deck {
+  .se-editor-tabs {
+    display: grid;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 108px;
+    gap: var(--se-space-1);
+    padding: var(--se-space-1) var(--se-space-2) 0;
+  }
+
+  /* Height is the grid's job here, so drop the animated inline height. */
+  .se-panel-stack {
+    order: 1;
+    min-width: 0;
+    height: auto !important;
     max-height: min(140px, 42dvh);
     overflow-x: hidden;
     overflow-y: auto;
   }
 
-  .se-editor-tabs {
-    display: grid;
-    min-height: 0;
-    grid-template-columns: minmax(0, 1fr) 80px;
-    gap: 4px;
-    padding: 4px 8px 0;
-  }
-
-  .se-editor-tabs > [role="tablist"] {
-    width: 100%;
-    max-width: none;
-    flex-direction: column;
-    justify-content: center;
+  .se-mode-bar {
     order: 2;
-    border-inline-start: 1px solid var(--se-hairline);
-    border-block-end: 0;
+    align-items: center;
+    padding: 0 0 max(var(--se-space-1), env(safe-area-inset-bottom));
   }
 
-  .se-editor-tabs [role="tab"] {
+  /* The segmented control stacks into a rail, thumb sliding vertically. */
+  .se-mode-tabs {
+    display: flex;
     width: 100%;
-    flex-direction: row;
+    flex-direction: column;
+    border-radius: 20px;
+  }
+
+  .se-mode-tab {
+    width: 100%;
+    min-height: 34px;
     justify-content: flex-start;
-    gap: 6px;
+    padding-inline: var(--se-space-3);
   }
 
   .se-editor-panel {
-    order: 1;
     min-width: 0;
     min-height: 0;
     margin-top: 0 !important;
-    overflow-y: auto;
   }
 
+  /* The gutter shrinks with the available height, but stays symmetric — the
+     panels sit in a narrow column here, not against the stage edge. */
   .se-adjust-panel,
   .se-crop-panel {
     max-height: none;
@@ -494,7 +744,6 @@ input,
     min-height: 0;
     justify-content: flex-start;
     gap: 2px;
-    padding-inline-end: 4px;
-    padding-inline-start: 8px;
+    --se-gutter: var(--se-space-2);
   }
 }

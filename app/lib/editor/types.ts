@@ -152,20 +152,6 @@ export const ADJUSTMENT_KEYS: AdjustmentKey[] = [
   "vignette",
 ];
 
-/** Primary dials shown by default — everything else behind More. */
-export const CORE_ADJUSTMENT_KEYS: AdjustmentKey[] = [
-  "exposure",
-  "contrast",
-  "highlights",
-  "shadows",
-  "warmth",
-  "saturation",
-];
-
-export const MORE_ADJUSTMENT_KEYS: AdjustmentKey[] = ADJUSTMENT_KEYS.filter(
-  (key) => !CORE_ADJUSTMENT_KEYS.includes(key),
-);
-
 export const ADJUSTMENT_META: Record<
   AdjustmentKey,
   { label: string; min: number; max: number; step: number }

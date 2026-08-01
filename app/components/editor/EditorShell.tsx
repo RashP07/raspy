@@ -1,8 +1,21 @@
 "use client";
 
-import { useEffect, useState, type CSSProperties } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+} from "react";
+import {
+  Tabs,
+  TabsContent,
+  TabsIndicator,
+  TabsList,
+  TabsTrigger,
+} from "@/components/ui/tabs";
 import { BottomSheet } from "@/components/ui/sheet";
+import { AdjustModeIcon, CropModeIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/app/lib/editor/context";
 import { AdjustPanel } from "./AdjustPanel";
@@ -11,6 +24,7 @@ import { ExportSheet } from "./ExportSheet";
 import { TopToolbar } from "./TopToolbar";
 import { Viewport } from "./Viewport";
 import {
+  ADJUSTMENT_KEYS,
   ADJUSTMENT_META,
   type ExportDimensions,
   type ExportOptions,
@@ -62,6 +76,33 @@ export function EditorShell({
 
   const { project, ui } = state;
   const [newPhotoOpen, setNewPhotoOpen] = useState(false);
+  const panelStackRef = useRef<HTMLDivElement>(null);
+
+  // The deck is as tall as whichever panel is showing, and the two differ by
+  // ~100px. Pinning an explicit height lets that difference animate instead of
+  // snapping, and writing it straight to the node keeps it out of render.
+  useLayoutEffect(() => {
+    const stack = panelStackRef.current;
+    if (!stack) return;
+
+    const measure = () => {
+      const panel = stack.querySelector<HTMLElement>(
+        '[role="tabpanel"]:not([hidden])',
+      );
+      if (!panel) return;
+      stack.style.height = `${panel.offsetHeight}px`;
+      // Held back until after the first measurement so the deck does not
+      // animate up from nothing on load.
+      stack.dataset.ready = "";
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    stack
+      .querySelectorAll<HTMLElement>('[role="tabpanel"]')
+      .forEach((panel) => observer.observe(panel));
+    return () => observer.disconnect();
+  }, [ui.mode]);
   const [straightening, setStraightening] = useState(false);
 
   useEffect(() => {
@@ -82,6 +123,10 @@ export function EditorShell({
 
   if (!project) return null;
 
+  const hasAnyAdjustments = ADJUSTMENT_KEYS.some(
+    (key) => project.adjustments[key] !== 0,
+  );
+
   return (
     <div
       className="flex h-full min-h-0 w-full flex-col overflow-hidden"
@@ -96,8 +141,10 @@ export function EditorShell({
       <TopToolbar
         canUndo={canUndo}
         canRedo={canRedo}
+        canResetAll={hasAnyAdjustments}
         busy={Boolean(ui.busy) || exportProgress !== null}
         onNewPhoto={() => setNewPhotoOpen(true)}
+        onResetAll={resetAllAdjustments}
         onUndo={undo}
         onRedo={redo}
         onExport={() => setExportOpen(true)}
@@ -123,14 +170,7 @@ export function EditorShell({
           straightening={straightening}
         />
 
-        <div
-          className="se-tool-deck shrink-0"
-          style={{
-            paddingBottom: "max(0.2rem, env(safe-area-inset-bottom))",
-            paddingLeft: "max(0.35rem, env(safe-area-inset-left))",
-            paddingRight: "max(0.35rem, env(safe-area-inset-right))",
-          }}
-        >
+        <div className="se-tool-deck shrink-0">
           <Tabs
             value={ui.mode}
             onValueChange={(value) => {
@@ -139,50 +179,48 @@ export function EditorShell({
                 setMode(value);
               }
             }}
-            className="se-editor-tabs flex flex-col px-1 pt-1"
+            className="se-editor-tabs flex flex-col pt-2"
           >
-            <TabsContent value="adjust" className="se-editor-panel mt-0">
-              <AdjustPanel
-                activeKey={ui.activeAdjustment}
-                values={project.adjustments}
-                hasWebGL={ui.hasWebGL}
-                onSelect={setActiveAdjustment}
-                onChange={(key, value) => setAdjustment(key, value, true)}
-                onReset={resetAdjustment}
-                onResetAll={resetAllAdjustments}
-                onCommit={commitHistory}
-              />
-            </TabsContent>
+            <div ref={panelStackRef} className="se-panel-stack">
+              <TabsContent value="adjust" className="se-editor-panel mt-0">
+                <AdjustPanel
+                  activeKey={ui.activeAdjustment}
+                  values={project.adjustments}
+                  hasWebGL={ui.hasWebGL}
+                  onSelect={setActiveAdjustment}
+                  onChange={(key, value) => setAdjustment(key, value, true)}
+                  onReset={resetAdjustment}
+                  onCommit={commitHistory}
+                />
+              </TabsContent>
 
-            <TabsContent value="crop" className="se-editor-panel mt-0">
-              <CropPanel
-                crop={project.crop}
-                sourceWidth={project.source.width}
-                sourceHeight={project.source.height}
-                onChange={setCrop}
-                onReset={resetCrop}
-                onCommit={commitHistory}
-                onStraightenStart={() => setStraightening(true)}
-                onStraightenEnd={() => setStraightening(false)}
-              />
-            </TabsContent>
+              <TabsContent value="crop" className="se-editor-panel mt-0">
+                <CropPanel
+                  crop={project.crop}
+                  sourceWidth={project.source.width}
+                  sourceHeight={project.source.height}
+                  onChange={setCrop}
+                  onReset={resetCrop}
+                  onCommit={commitHistory}
+                  onStraightenStart={() => setStraightening(true)}
+                  onStraightenEnd={() => setStraightening(false)}
+                />
+              </TabsContent>
+            </div>
 
-            <TabsList className="se-mode-tabs mx-auto mt-0.5 w-full max-w-[12rem] justify-center gap-4 bg-transparent pb-0.5">
-              <TabsTrigger
-                value="adjust"
-                className="min-h-10 flex-1 flex-col gap-0.5 px-2 text-[10px] font-medium tracking-wide uppercase"
-              >
-                <AdjustIcon />
-                Adjust
-              </TabsTrigger>
-              <TabsTrigger
-                value="crop"
-                className="min-h-10 flex-1 flex-col gap-0.5 px-2 text-[10px] font-medium tracking-wide uppercase"
-              >
-                <CropIcon />
-                Crop
-              </TabsTrigger>
-            </TabsList>
+            <div className="se-mode-bar">
+              <TabsList className="se-mode-tabs">
+                <TabsIndicator className="se-mode-thumb" />
+                <TabsTrigger value="adjust" className="se-mode-tab">
+                  <AdjustModeIcon />
+                  Adjust
+                </TabsTrigger>
+                <TabsTrigger value="crop" className="se-mode-tab">
+                  <CropModeIcon />
+                  Crop
+                </TabsTrigger>
+              </TabsList>
+            </div>
           </Tabs>
         </div>
       </main>
@@ -212,7 +250,7 @@ export function EditorShell({
           <Button
             variant="danger"
             size="lg"
-            className="min-h-12 w-full rounded-lg text-[16px] font-medium"
+            className="w-full rounded-lg font-medium"
             onClick={() => {
               setNewPhotoOpen(false);
               onNewPhoto();
@@ -223,7 +261,7 @@ export function EditorShell({
           <Button
             variant="ghost"
             size="lg"
-            className="min-h-12 w-full text-[16px] text-[var(--se-muted)]"
+            className="w-full text-[var(--se-muted)]"
             onClick={() => setNewPhotoOpen(false)}
           >
             Keep editing
@@ -239,34 +277,5 @@ export function EditorShell({
           : "Crop tools"}
       </p>
     </div>
-  );
-}
-
-function AdjustIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M4 7h10M18 7h2M4 17h2M10 17h10"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-      />
-      <circle cx="16" cy="7" r="2.25" stroke="currentColor" strokeWidth="1.6" />
-      <circle cx="8" cy="17" r="2.25" stroke="currentColor" strokeWidth="1.6" />
-    </svg>
-  );
-}
-
-function CropIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden>
-      <path
-        d="M7 3v14h14M3 7h14v14"
-        stroke="currentColor"
-        strokeWidth="1.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-    </svg>
   );
 }
