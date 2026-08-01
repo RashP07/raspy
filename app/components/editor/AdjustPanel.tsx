@@ -217,7 +217,7 @@ export function AdjustPanel({
         </div>
       </div>
 
-      <div onPointerUp={onCommit} onPointerCancel={onCommit}>
+      <div onPointerUp={onCommit} onPointerCancel={onCommit} onKeyUp={onCommit}>
         <RulerSlider
           value={value}
           min={meta.min}

@@ -5,7 +5,7 @@ import type {
   ProjectSource,
   ProjectState,
 } from "@/app/lib/editor/types";
-import { createPreviewBitmap } from "@/app/lib/image/decode";
+import { createPreviewBitmap, PREVIEW_LONG_EDGE } from "@/app/lib/image/decode";
 import {
   computeRenderGeometry,
   constrainExportDimensions,
@@ -369,6 +369,13 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       preserveDrawingBuffer: true,
     });
     if (!exportGl) {
+      if (!isNeutral(project)) {
+        // exportVia2d draws the raw source with no shader; exporting a
+        // non-neutral project through it would silently drop every slider.
+        throw new Error(
+          "Export needs WebGL to apply your adjustments. Close other tabs and try again.",
+        );
+      }
       return this.exportVia2d(
         project,
         options,
@@ -400,6 +407,12 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       project.source.blob,
       this.maxTextureSize,
     );
+    const texW = bitmap.width;
+    const texH = bitmap.height;
+    // Widen the kernel so it covers the same image fraction it does on the
+    // preview texture (capped at PREVIEW_LONG_EDGE); otherwise sharpness,
+    // definition, and noise reduction render weaker on export than on screen.
+    const exportKernel = Math.max(1, Math.max(texW, texH) / PREVIEW_LONG_EDGE);
 
     const tex = exportGl.createTexture();
     exportGl.bindTexture(exportGl.TEXTURE_2D, tex);
@@ -454,8 +467,8 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     exportGl.uniform1i(uniforms.u_image, 0);
     exportGl.uniform2f(
       uniforms.u_texel,
-      1 / project.source.width,
-      1 / project.source.height,
+      exportKernel / Math.max(1, texW),
+      exportKernel / Math.max(1, texH),
     );
     exportGl.uniform1f(uniforms.u_compare, 0);
     exportGl.uniform1f(uniforms.u_neutral, isNeutral(project) ? 1 : 0);

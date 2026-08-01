@@ -13,9 +13,10 @@ import {
 import { playSliderTick, unlockTickAudio } from "@/app/lib/audio/tick";
 import { cn } from "@/lib/utils";
 
-/** Pixel distance between adjacent ticks. One tick per step, so the indicator
- *  always lands on a tick rather than in the gap between two. */
-const TICK_PX = 6;
+/** Pixels a full min..max sweep should take, regardless of step granularity.
+ *  Tick spacing derives from this so coarse-stepped ranges (exposure: 80 ticks)
+ *  aren't several times more drag-sensitive than fine ones (200 ticks). */
+const RANGE_TRAVEL_PX = 1200;
 
 /** How far either side of the indicator the swell reaches, in pixels. */
 const SWELL_PX = 62;
@@ -140,13 +141,19 @@ export function RulerSlider({
     return out;
   }, [min, max, minorInterval, majorInterval]);
 
-  const tapeWidth = (span / minorInterval) * TICK_PX;
+  /* One tick per step, so the indicator always lands on a tick rather than in
+     the gap between two; spacing clamped so tapes stay legible. */
+  const tickPx = Math.min(
+    14,
+    Math.max(4, (RANGE_TRAVEL_PX * minorInterval) / span),
+  );
+  const tapeWidth = (span / minorInterval) * tickPx;
   const xOf = (v: number) => ((v - min) / span) * tapeWidth;
   const offset = width / 2 - xOf(value);
 
   /* A tick per step can mean hundreds of them; only the ones that can reach the
      viewport are worth rendering. */
-  const halfWindow = width / 2 + TICK_PX * 8;
+  const halfWindow = width / 2 + tickPx * 8;
   const visibleTicks = ticks.filter(
     (tick) => Math.abs(xOf(tick.value) - xOf(value)) <= halfWindow,
   );
@@ -217,7 +224,7 @@ export function RulerSlider({
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const dx = event.clientX - drag.x;
-    changeTo(drag.value - dx * (minorInterval / TICK_PX));
+    changeTo(drag.value - dx * (minorInterval / tickPx));
   };
 
   const endDrag = (event: PointerEvent<HTMLDivElement>) => {

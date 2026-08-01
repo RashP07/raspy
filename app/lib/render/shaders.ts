@@ -67,77 +67,100 @@ vec3 applyExposure(vec3 c, float ev) {
   return c * pow(2.0, ev);
 }
 
+// Perceptual position of a linear luma; the masks below are authored in
+// sRGB-ish units and must not be compared against raw linear values.
+float tonePos(float y) {
+  return pow(max(y, 0.0), 1.0 / 2.2);
+}
+
 vec3 applyBrilliance(vec3 c, float amount) {
   float a = amount / 100.0;
-  float y = luma(c);
-  float mid = smoothstep(0.15, 0.85, y);
-  float lift = a * 0.35 * mid * (1.0 - abs(y - 0.5) * 1.4);
-  return c + vec3(lift);
+  float p = tonePos(luma(c));
+  // Open shadows and low-mids, taper out before the highlight shoulder.
+  float w = smoothstep(0.0, 0.50, p) * (1.0 - smoothstep(0.55, 0.95, p));
+  return c * exp2(a * 0.55 * w);
 }
 
 vec3 applyHighlightsShadows(vec3 c, float highlights, float shadows) {
-  float y = luma(c);
-  float hMask = smoothstep(0.45, 0.95, y);
-  float sMask = 1.0 - smoothstep(0.05, 0.55, y);
+  float p = tonePos(luma(c));
   float h = highlights / 100.0;
   float s = shadows / 100.0;
-  vec3 outC = c;
-  outC += c * (h * -0.55 * hMask);
-  outC += vec3(s * 0.45 * sMask);
-  return outC;
+  // Apple Photos convention: positive highlights RECOVERS (darkens) the
+  // brights; positive shadows OPENS them. Lightroom inverts the highlight
+  // direction -- do not "fix" the sign here.
+  float hMask = smoothstep(0.50, 1.0, p);
+  float sMask = 1.0 - smoothstep(0.05, 0.50, p);
+  return c * exp2(-h * 1.0 * hMask + s * 1.1 * sMask);
 }
 
 vec3 applyContrast(vec3 c, float contrast) {
   float a = contrast / 100.0;
-  float mid = 0.18;
-  vec3 g = pow(max(c, 0.0), vec3(1.0));
-  return mix(vec3(mid), g, 1.0 + a * 0.9);
+  return mix(vec3(0.18), c, pow(2.0, a));
 }
 
 vec3 applyBrightness(vec3 c, float brightness) {
   float a = brightness / 100.0;
   float y = luma(c);
-  float target = clamp(y + a * 0.35, 0.0, 1.5);
-  if (y < 1e-5) return c + vec3(target);
+  if (y < 1e-5) return c;
+  float target = pow(clamp(y, 0.0, 1.0), pow(2.0, -a * 0.8));
   return c * (target / y);
 }
 
 vec3 applyBlackPoint(vec3 c, float blackPoint) {
-  float a = blackPoint / 100.0;
-  if (a < 0.0) {
-    return c * (1.0 + a * -0.35) + vec3((-a) * 0.08);
-  }
-  float y = luma(c);
-  float crush = smoothstep(0.0, 0.25 + a * 0.2, y);
-  return c * crush;
-}
-
-vec3 applySaturation(vec3 c, float sat) {
-  float a = sat / 100.0;
-  float y = luma(c);
-  return mix(vec3(y), c, 1.0 + a);
-}
-
-vec3 applyVibrancy(vec3 c, float vib) {
-  float a = vib / 100.0;
-  float y = luma(c);
-  float chroma = distance(c, vec3(y));
-  float weight = 1.0 - smoothstep(0.05, 0.35, chroma);
-  // Skin-ish protection: reddish hues with moderate luma
-  float skin = smoothstep(0.15, 0.55, c.r - c.g) * smoothstep(0.2, 0.7, y) * (1.0 - smoothstep(0.55, 0.9, y));
-  weight *= 1.0 - skin * 0.85;
-  return mix(vec3(y), c, 1.0 + a * weight);
+  float bp = (blackPoint / 100.0) * 0.04;
+  return (c - vec3(bp)) / (1.0 - bp);
 }
 
 vec3 applyWhiteBalance(vec3 c, float warmth, float tint) {
+  if (abs(warmth) < 1e-4 && abs(tint) < 1e-4) return c;
   float w = warmth / 100.0;
   float t = tint / 100.0;
-  c.r *= 1.0 + w * 0.18;
-  c.b *= 1.0 - w * 0.18;
-  c.g *= 1.0 - t * 0.12;
-  c.r *= 1.0 + t * 0.06;
-  c.b *= 1.0 + t * 0.06;
-  return c;
+  vec3 gain = vec3(
+    1.0 + w * 0.30 + t * 0.10,
+    1.0 - t * 0.20,
+    1.0 - w * 0.30 + t * 0.10
+  );
+  // Renormalise on neutral so white balance changes colour, not exposure.
+  return c * gain / max(luma(gain), 1e-4);
+}
+
+// Hue ratios rather than absolute channel differences: these hold steady from
+// deep to light skin, where absolute differences collapse in the shadows.
+float skinMask(vec3 g) {
+  float mx = max(max(g.r, g.g), g.b);
+  if (mx < 1e-4) return 0.0;
+  float rg = (g.r - g.g) / mx;
+  float gb = (g.g - g.b) / mx;
+  return smoothstep(0.06, 0.16, rg) * (1.0 - smoothstep(0.42, 0.62, rg))
+       * smoothstep(0.03, 0.09, gb) * (1.0 - smoothstep(0.30, 0.48, gb))
+       * smoothstep(0.04, 0.14, luma(g));
+}
+
+vec3 applyColor(vec3 c, float sat, float vib) {
+  if (abs(sat) < 1e-4 && abs(vib) < 1e-4) return c;
+  float sa = sat / 100.0;
+  float va = vib / 100.0;
+  vec3 g = linearToSrgb(max(c, 0.0));
+  float y = luma(g);
+
+  // Positive gain is compressed: a straight 2x drives the darkest channel of
+  // ordinary skin and wood tones to black, where the clamp eats the hue.
+  float s = sa >= 0.0 ? 1.0 + sa * 0.75 : 1.0 + sa;
+  g = max(mix(vec3(y), g, s), 0.0);
+
+  y = luma(g);
+  float mx = max(max(g.r, g.g), g.b);
+  float mn = min(min(g.r, g.g), g.b);
+  float rel = mx > 1e-4 ? (mx - mn) / mx : 0.0;
+  float high = smoothstep(0.15, 0.85, rel);
+  float protect = 1.0 - skinMask(g) * 0.7;
+  // Positive favours muted colour; negative must act broadly, or the pastels
+  // grey out while the neons survive untouched.
+  float weight = (va >= 0.0 ? 1.0 - high : mix(0.6, 1.0, high)) * protect;
+  float v = va >= 0.0 ? 1.0 + va * 0.9 * weight : 1.0 + va * weight;
+  g = max(mix(vec3(y), g, v), 0.0);
+
+  return srgbToLinear(g);
 }
 
 vec3 sampleLinear(vec2 uv) {
@@ -166,10 +189,10 @@ vec3 denoise(vec2 uv, float amount) {
   return mix(center, acc / wsum, a);
 }
 
-vec3 definitionPass(vec2 uv, vec3 base, float amount) {
+vec3 definitionPass(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
   float a = amount / 100.0;
   if (a < 0.001) return base;
-  vec3 blur = (
+  vec3 blurRaw = (
     sampleLinear(uv + vec2(-2.0, 0.0) * u_texel) +
     sampleLinear(uv + vec2(2.0, 0.0) * u_texel) +
     sampleLinear(uv + vec2(0.0, -2.0) * u_texel) +
@@ -179,24 +202,25 @@ vec3 definitionPass(vec2 uv, vec3 base, float amount) {
     sampleLinear(uv + vec2(-1.0, 1.0) * u_texel * 2.0) +
     sampleLinear(uv + vec2(1.0, 1.0) * u_texel * 2.0)
   ) * 0.125;
-  vec3 high = base - blur;
-  high = clamp(high, vec3(-0.12), vec3(0.12));
+  // Map the unadjusted neighborhood into the adjusted image's scale so the
+  // difference is local detail, not the tonal delta. Flat patch => identity.
+  vec3 gain = base / max(rawCenter, vec3(1e-4));
+  vec3 high = clamp(base - blurRaw * gain, vec3(-0.12), vec3(0.12));
   return base + high * a * 1.4;
 }
 
-vec3 sharpen(vec2 uv, vec3 base, float amount) {
+vec3 sharpen(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
   float a = amount / 100.0;
   if (a < 0.001) return base;
-  vec3 n = sampleLinear(uv + vec2(0.0, -1.0) * u_texel);
-  vec3 s = sampleLinear(uv + vec2(0.0, 1.0) * u_texel);
-  vec3 e = sampleLinear(uv + vec2(1.0, 0.0) * u_texel);
-  vec3 w = sampleLinear(uv + vec2(-1.0, 0.0) * u_texel);
+  vec3 gain = base / max(rawCenter, vec3(1e-4));
+  vec3 n = sampleLinear(uv + vec2(0.0, -1.0) * u_texel) * gain;
+  vec3 s = sampleLinear(uv + vec2(0.0, 1.0) * u_texel) * gain;
+  vec3 e = sampleLinear(uv + vec2(1.0, 0.0) * u_texel) * gain;
+  vec3 w = sampleLinear(uv + vec2(-1.0, 0.0) * u_texel) * gain;
   float cy = luma(base);
   float edge = abs(cy - luma(n)) + abs(cy - luma(s)) + abs(cy - luma(e)) + abs(cy - luma(w));
   float mask = smoothstep(0.02, 0.18, edge);
-  vec3 blur = (n + s + e + w) * 0.25;
-  vec3 detail = base - blur;
-  detail = clamp(detail, vec3(-0.08), vec3(0.08));
+  vec3 detail = clamp(base - (n + s + e + w) * 0.25, vec3(-0.08), vec3(0.08));
   return base + detail * a * 1.8 * mask;
 }
 
@@ -220,18 +244,19 @@ void main() {
     return;
   }
 
-  vec3 color = denoise(v_uv, u_noiseReduction);
-  color = applyExposure(color, u_exposure);
+  vec3 rawBase = denoise(v_uv, u_noiseReduction);
+  vec3 color = applyExposure(rawBase, u_exposure);
+  // White balance is a sensor-space channel gain; it must precede tone
+  // shaping or black point crushes a luma the gains are about to move.
+  color = applyWhiteBalance(color, u_warmth, u_tint);
   color = applyBrilliance(color, u_brilliance);
   color = applyHighlightsShadows(color, u_highlights, u_shadows);
   color = applyContrast(color, u_contrast);
   color = applyBrightness(color, u_brightness);
   color = applyBlackPoint(color, u_blackPoint);
-  color = applyWhiteBalance(color, u_warmth, u_tint);
-  color = applySaturation(color, u_saturation);
-  color = applyVibrancy(color, u_vibrancy);
-  color = definitionPass(v_uv, color, u_definition);
-  color = sharpen(v_uv, color, u_sharpness);
+  color = applyColor(color, u_saturation, u_vibrancy);
+  color = definitionPass(v_uv, color, rawBase, u_definition);
+  color = sharpen(v_uv, color, rawBase, u_sharpness);
   color = applyVignette(color, v_outputUv, u_vignette);
   color = softClip(max(color, 0.0));
   color = linearToSrgb(clamp(color, 0.0, 1.0));
