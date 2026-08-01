@@ -203,25 +203,28 @@ vec3 definitionPass(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
     sampleLinear(uv + vec2(1.0, 1.0) * u_texel * 2.0)
   ) * 0.125;
   // Map the unadjusted neighborhood into the adjusted image's scale so the
-  // difference is local detail, not the tonal delta. Flat patch => identity.
-  vec3 gain = base / max(rawCenter, vec3(1e-4));
-  vec3 high = clamp(base - blurRaw * gain, vec3(-0.12), vec3(0.12));
-  return base + high * a * 1.4;
+  // difference is local detail, not the tonal delta. Luma-only: a scalar
+  // gain and a uniform scale leave the R:G:B ratio untouched, where the
+  // per-channel form tinted edges (a near-zero raw channel blew its gain up).
+  float yBase = luma(base);
+  float gain = yBase / max(luma(rawCenter), 1e-4);
+  float high = clamp(yBase - luma(blurRaw) * gain, -0.12, 0.12);
+  return base * ((yBase + high * a * 1.4) / max(yBase, 1e-4));
 }
 
 vec3 sharpen(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
   float a = amount / 100.0;
   if (a < 0.001) return base;
-  vec3 gain = base / max(rawCenter, vec3(1e-4));
-  vec3 n = sampleLinear(uv + vec2(0.0, -1.0) * u_texel) * gain;
-  vec3 s = sampleLinear(uv + vec2(0.0, 1.0) * u_texel) * gain;
-  vec3 e = sampleLinear(uv + vec2(1.0, 0.0) * u_texel) * gain;
-  vec3 w = sampleLinear(uv + vec2(-1.0, 0.0) * u_texel) * gain;
-  float cy = luma(base);
-  float edge = abs(cy - luma(n)) + abs(cy - luma(s)) + abs(cy - luma(e)) + abs(cy - luma(w));
+  float yBase = luma(base);
+  float gain = yBase / max(luma(rawCenter), 1e-4);
+  float n = luma(sampleLinear(uv + vec2(0.0, -1.0) * u_texel)) * gain;
+  float s = luma(sampleLinear(uv + vec2(0.0, 1.0) * u_texel)) * gain;
+  float e = luma(sampleLinear(uv + vec2(1.0, 0.0) * u_texel)) * gain;
+  float w = luma(sampleLinear(uv + vec2(-1.0, 0.0) * u_texel)) * gain;
+  float edge = abs(yBase - n) + abs(yBase - s) + abs(yBase - e) + abs(yBase - w);
   float mask = smoothstep(0.02, 0.18, edge);
-  vec3 detail = clamp(base - (n + s + e + w) * 0.25, vec3(-0.08), vec3(0.08));
-  return base + detail * a * 1.8 * mask;
+  float detail = clamp(yBase - (n + s + e + w) * 0.25, -0.08, 0.08);
+  return base * ((yBase + detail * a * 1.8 * mask) / max(yBase, 1e-4));
 }
 
 vec3 applyVignette(vec3 c, vec2 uv, float amount) {
