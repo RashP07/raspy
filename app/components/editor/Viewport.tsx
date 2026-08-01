@@ -200,7 +200,6 @@ export function Viewport({
       points.slice(1).forEach((point) => ctx.lineTo(point.x, point.y));
       ctx.closePath();
       ctx.stroke();
-      ctx.restore();
 
       if (showGrid) {
         ctx.strokeStyle = "rgba(255,255,255,0.38)";
@@ -243,6 +242,7 @@ export function Viewport({
         ctx.lineTo(towardNext.x, towardNext.y);
         ctx.stroke();
       });
+      ctx.restore();
     },
     [cropPoints, geometryForContainer, mode],
   );
