@@ -9,7 +9,13 @@ import { EditorShell } from "./EditorShell";
 import { ImportScreen } from "./ImportScreen";
 import { usePhotoExport, useRenderer } from "./useRenderer";
 
-async function shareOrDownload(blob: Blob, filename: string, mimeType: string) {
+type SaveOutcome = "shared" | "downloaded" | "cancelled";
+
+async function shareOrDownload(
+  blob: Blob,
+  filename: string,
+  mimeType: string,
+): Promise<SaveOutcome> {
   const file = new File([blob], filename, { type: mimeType });
   const canShare =
     typeof navigator !== "undefined" &&
@@ -19,9 +25,11 @@ async function shareOrDownload(blob: Blob, filename: string, mimeType: string) {
   if (canShare) {
     try {
       await navigator.share({ files: [file], title: filename });
-      return;
+      return "shared";
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") return;
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return "cancelled";
+      }
     }
   }
 
@@ -33,6 +41,7 @@ async function shareOrDownload(blob: Blob, filename: string, mimeType: string) {
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+  return "downloaded";
 }
 
 function extensionFor(format: ExportOptions["format"]): string {
@@ -91,10 +100,10 @@ function EditorAppInner() {
         const message =
           error instanceof ImportError
             ? error.message
-            : "Could not import this photo.";
+            : "This photo couldn't be opened.";
         setImportError(message);
         showToast({
-          title: "Import failed",
+          title: "Couldn't open photo",
           description: message,
           status: "error",
           timeout: 0,
@@ -111,7 +120,7 @@ function EditorAppInner() {
       abortRef.current = controller;
       setExportProgress(0);
       setExportCancelling(false);
-      setBusy("Exporting…");
+      setBusy("Saving…");
       try {
         const blob = await runExport(options, controller.signal, (progress) =>
           setExportProgress(progress),
@@ -119,22 +128,28 @@ function EditorAppInner() {
         const base =
           state.project.source.name.replace(/\.[^.]+$/, "") || "simplyedit";
         const filename = `${base}-edit.${extensionFor(options.format)}`;
-        await shareOrDownload(blob, filename, options.format);
-        showToast({
-          title: "Exported",
-          description: filename,
-          status: "success",
-        });
+        const outcome = await shareOrDownload(blob, filename, options.format);
+        if (outcome === "cancelled") {
+          showToast({ title: "Save cancelled", status: "neutral" });
+        } else {
+          showToast({
+            title: outcome === "shared" ? "Shared" : "Saved",
+            description:
+              outcome === "shared" ? filename : `Saved as ${filename}`,
+            status: "success",
+          });
+        }
         setExportOpen(false);
       } catch (error) {
         if (controller.signal.aborted) {
-          showToast({ title: "Export cancelled", status: "neutral" });
+          showToast({ title: "Save cancelled", status: "neutral" });
         } else {
-          const message =
-            error instanceof Error ? error.message : "Export failed";
+          // Renderer failures carry internals like "2D context unavailable"
+          // and raw shader logs; log them and show something actionable.
+          console.error("Save failed", error);
           showToast({
-            title: "Export failed",
-            description: message,
+            title: "Couldn't save photo",
+            description: "Try a smaller size or a different format.",
             status: "error",
             timeout: 0,
           });
@@ -163,8 +178,8 @@ function EditorAppInner() {
   useEffect(() => {
     if (!state.ui.draftRestored) return;
     showToast({
-      title: "Draft restored",
-      description: "Your last edit session was recovered.",
+      title: "Last edit restored",
+      description: "Picked up where you left off.",
       status: "info",
     });
   }, [state.ui.draftRestored, showToast]);
@@ -172,8 +187,8 @@ function EditorAppInner() {
   useEffect(() => {
     if (state.ui.storageWarning) {
       showToast({
-        title: "Storage warning",
-        description: state.ui.storageWarning,
+        title: state.ui.storageWarning.title,
+        description: state.ui.storageWarning.message,
         status: "neutral",
       });
     }

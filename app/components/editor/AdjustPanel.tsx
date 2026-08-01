@@ -14,6 +14,7 @@ import {
   ADJUSTMENT_META,
   CORE_ADJUSTMENT_KEYS,
   MORE_ADJUSTMENT_KEYS,
+  NO_WEBGL_MESSAGE,
   type AdjustmentKey,
 } from "@/app/lib/editor/types";
 
@@ -133,7 +134,7 @@ export function AdjustPanel({
             borderBottom: "1px solid var(--se-hairline)",
           }}
         >
-          Adjustments need WebGL2. Crop and save still work.
+          {NO_WEBGL_MESSAGE}
         </p>
       ) : null}
 

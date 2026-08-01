@@ -96,11 +96,11 @@ describe("shared render geometry", () => {
     );
     expect(dimensions.reduced).toBe(true);
     expect(dimensions.requested).toEqual({ width: 12000, height: 8000 });
-    expect(Math.max(dimensions.actual.width, dimensions.actual.height)).toBeLessThanOrEqual(
-      8192,
-    );
-    expect(dimensions.actual.width * dimensions.actual.height * 8).toBeLessThanOrEqual(
-      256 * 1024 * 1024,
-    );
+    expect(
+      Math.max(dimensions.actual.width, dimensions.actual.height),
+    ).toBeLessThanOrEqual(8192);
+    expect(
+      dimensions.actual.width * dimensions.actual.height * 8,
+    ).toBeLessThanOrEqual(256 * 1024 * 1024);
   });
 });

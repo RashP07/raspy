@@ -6,6 +6,7 @@ import {
   areSnapshotsEqual,
 } from "./defaults";
 import type {
+  EditorNotice,
   AdjustmentKey,
   CropState,
   EditSnapshot,
@@ -17,9 +18,7 @@ import type {
 export const HISTORY_LIMIT = 50;
 
 export type HistoryCoalesceKey =
-  | `adjust:${AdjustmentKey}`
-  | "crop-gesture"
-  | null;
+  `adjust:${AdjustmentKey}` | "crop-gesture" | null;
 
 export interface EditorState {
   project: ProjectState | null;
@@ -37,7 +36,7 @@ export type EditorAction =
   | { type: "SET_COMPARING"; comparing: boolean }
   | { type: "SET_EXPORT_OPEN"; open: boolean }
   | { type: "SET_HAS_WEBGL"; hasWebGL: boolean }
-  | { type: "SET_STORAGE_WARNING"; warning: string | null }
+  | { type: "SET_STORAGE_WARNING"; warning: EditorNotice | null }
   | { type: "SET_BUSY"; busy: string | null }
   | {
       type: "SET_RENDERER_STATUS";
@@ -77,7 +76,10 @@ export function createInitialEditorState(): EditorState {
   };
 }
 
-function pushHistory(state: EditorState, nextProject: ProjectState): EditorState {
+function pushHistory(
+  state: EditorState,
+  nextProject: ProjectState,
+): EditorState {
   if (!state.project) {
     return { ...state, project: nextProject, past: [], future: [] };
   }
@@ -123,7 +125,10 @@ function withCoalescedHistory(
   return { ...pushed, coalesceKey: null };
 }
 
-export function editorReducer(state: EditorState, action: EditorAction): EditorState {
+export function editorReducer(
+  state: EditorState,
+  action: EditorAction,
+): EditorState {
   switch (action.type) {
     case "LOAD_PROJECT":
       return {
@@ -145,7 +150,11 @@ export function editorReducer(state: EditorState, action: EditorAction): EditorS
         },
       };
     case "SET_MODE":
-      return { ...state, ui: { ...state.ui, mode: action.mode }, coalesceKey: null };
+      return {
+        ...state,
+        ui: { ...state.ui, mode: action.mode },
+        coalesceKey: null,
+      };
     case "SET_ACTIVE_ADJUSTMENT":
       return {
         ...state,

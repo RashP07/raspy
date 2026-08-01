@@ -1,4 +1,9 @@
-import type { AdjustmentState, CropState, EditSnapshot, ProjectState } from "./types";
+import type {
+  AdjustmentState,
+  CropState,
+  EditSnapshot,
+  ProjectState,
+} from "./types";
 
 export function createDefaultAdjustments(): AdjustmentState {
   return {
@@ -73,7 +78,10 @@ export function snapshotFromProject(project: ProjectState): EditSnapshot {
   };
 }
 
-export function applySnapshot(project: ProjectState, snapshot: EditSnapshot): ProjectState {
+export function applySnapshot(
+  project: ProjectState,
+  snapshot: EditSnapshot,
+): ProjectState {
   return {
     ...project,
     adjustments: { ...snapshot.adjustments },

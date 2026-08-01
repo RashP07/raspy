@@ -573,7 +573,7 @@ export function Viewport({
       className="se-viewport relative min-h-0 flex-1 overflow-hidden"
       tabIndex={0}
       role="application"
-      aria-label="Photo editing viewport"
+      aria-label="Photo canvas"
       aria-describedby={shortcutsId}
       onPointerDown={(event) =>
         mode === "crop" ? beginCrop(event) : beginAdjust(event)
@@ -628,7 +628,7 @@ export function Viewport({
           role="alert"
           className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-balance text-[var(--se-danger)]"
         >
-          The photo preview could not be prepared.
+          Preview unavailable. Reload the page to try again.
         </div>
       ) : null}
 
@@ -648,8 +648,8 @@ export function Viewport({
       ) : null}
 
       {comparing ? (
-        <div className="pointer-events-none absolute left-1/2 top-[calc(0.75rem+env(safe-area-inset-top,0px))] -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white backdrop-blur-md">
-          ORIGINAL
+        <div className="pointer-events-none absolute left-1/2 top-[calc(0.75rem+env(safe-area-inset-top,0px))] -translate-x-1/2 rounded-full bg-black/65 px-3 py-1 text-[11px] font-semibold tracking-[0.14em] text-white uppercase backdrop-blur-md">
+          Original
         </div>
       ) : null}
 
@@ -657,10 +657,11 @@ export function Viewport({
         <button
           type="button"
           className="absolute bottom-[calc(0.75rem+env(safe-area-inset-bottom,0px))] end-[calc(0.75rem+env(safe-area-inset-right,0px))] min-h-10 rounded-full bg-black/65 px-3 text-[12px] font-medium tabular-nums whitespace-nowrap text-white backdrop-blur-md"
+          aria-label={`Fit to screen, currently ${viewTransform.zoom.toFixed(1)}× zoom`}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })}
         >
-          {viewTransform.zoom.toFixed(1)}× · Fit
+          Fit
         </button>
       ) : null}
     </div>

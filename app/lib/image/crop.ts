@@ -55,7 +55,9 @@ export function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-export function normalizeBounds(bounds: CropState["bounds"]): CropState["bounds"] {
+export function normalizeBounds(
+  bounds: CropState["bounds"],
+): CropState["bounds"] {
   let { x, y, width, height } = bounds;
   width = clamp(width, MIN_CROP_SIZE, 1);
   height = clamp(height, MIN_CROP_SIZE, 1);

@@ -194,7 +194,10 @@ function sourceUvMatrix(
   matrix = apply(matrix, scaleMat3(1 / coverScale, 1 / coverScale));
   matrix = apply(
     matrix,
-    scaleMat3(1 / Math.max(1, oriented.width), 1 / Math.max(1, oriented.height)),
+    scaleMat3(
+      1 / Math.max(1, oriented.width),
+      1 / Math.max(1, oriented.height),
+    ),
   );
   matrix = apply(matrix, translationMat3(0.5, 0.5));
 
@@ -216,9 +219,7 @@ function sourceUvMatrix(
 export function computeRenderGeometry(input: GeometryInput): RenderGeometry {
   const mode = input.mode ?? "adjust";
   const renderBounds =
-    mode === "crop"
-      ? { x: 0, y: 0, width: 1, height: 1 }
-      : input.crop.bounds;
+    mode === "crop" ? { x: 0, y: 0, width: 1, height: 1 } : input.crop.bounds;
   const renderCrop: CropState = { ...input.crop, bounds: renderBounds };
   const orientedOutput = cropPixelSize(
     input.sourceWidth,

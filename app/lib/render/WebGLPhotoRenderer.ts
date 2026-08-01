@@ -132,9 +132,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
                 detail: { status: "ready" },
               }),
             );
-            window.dispatchEvent(
-              new Event("simplyedit:renderer-recovered"),
-            );
+            window.dispatchEvent(new Event("simplyedit:renderer-recovered"));
           })
           .catch(() => {
             window.dispatchEvent(
@@ -199,7 +197,8 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     this.sourceAsset = source;
     const bitmap = source.preview ?? (await createPreviewBitmap(source.blob));
     if (version !== this.loadVersion || this.disposed) {
-      if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
+      if ("close" in bitmap && typeof bitmap.close === "function")
+        bitmap.close();
       return;
     }
     const width = "naturalWidth" in bitmap ? bitmap.naturalWidth : bitmap.width;
@@ -210,7 +209,8 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
 
     const gl = this.gl;
     if (!gl || this.contextLost) {
-      if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
+      if ("close" in bitmap && typeof bitmap.close === "function")
+        bitmap.close();
       return;
     }
 
@@ -248,7 +248,13 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     },
   ): void {
     const gl = this.gl;
-    if (!gl || !this.program || !this.texture || this.contextLost || this.disposed) {
+    if (
+      !gl ||
+      !this.program ||
+      !this.texture ||
+      this.contextLost ||
+      this.disposed
+    ) {
       return;
     }
 
@@ -363,7 +369,14 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       preserveDrawingBuffer: true,
     });
     if (!exportGl) {
-      return this.exportVia2d(project, options, width, height, signal, onProgress);
+      return this.exportVia2d(
+        project,
+        options,
+        width,
+        height,
+        signal,
+        onProgress,
+      );
     }
 
     const program = createProgram(exportGl, FULLSCREEN_VERT, ADJUST_FRAG);

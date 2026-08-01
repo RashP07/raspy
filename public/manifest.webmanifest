@@ -1,7 +1,7 @@
 {
   "name": "SimplyEdit",
   "short_name": "SimplyEdit",
-  "description": "Privacy-first photo editor. Photos stay on this device.",
+  "description": "Photos and edits never leave this device.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "any",

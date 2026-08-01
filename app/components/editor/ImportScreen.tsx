@@ -59,7 +59,7 @@ export function ImportScreen({
             className="max-w-[14rem] text-[15px] leading-snug"
             style={{ color: "var(--se-muted)" }}
           >
-            Edits stay on this device.
+            Photos and edits never leave this device.
           </p>
         </header>
 
@@ -141,7 +141,7 @@ export function ImportScreen({
             className="text-center text-[12px]"
             style={{ color: "var(--se-muted)" }}
           >
-            Draft restored from this device
+            Last edit restored from this device
           </p>
         ) : null}
       </div>

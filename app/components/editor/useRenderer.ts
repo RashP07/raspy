@@ -113,14 +113,7 @@ export function useRenderer(
     viewTransformRef.current = viewTransform;
     onStatusChangeRef.current = onStatusChange;
     scheduleRender();
-  }, [
-    project,
-    comparing,
-    mode,
-    viewTransform,
-    onStatusChange,
-    scheduleRender,
-  ]);
+  }, [project, comparing, mode, viewTransform, onStatusChange, scheduleRender]);
 
   useEffect(() => {
     const renderer = rendererRef.current;

@@ -16,11 +16,7 @@ export class ImportError extends Error {
   constructor(
     message: string,
     readonly code:
-      | "TYPE"
-      | "SIZE"
-      | "DIMENSIONS"
-      | "DECODE"
-      | "HEIC_UNSUPPORTED",
+      "TYPE" | "SIZE" | "DIMENSIONS" | "DECODE" | "HEIC_UNSUPPORTED",
   ) {
     super(message);
     this.name = "ImportError";
@@ -65,7 +61,7 @@ export async function decodeImageSource(file: File): Promise<{
 }> {
   if (file.size > MAX_FILE_BYTES) {
     throw new ImportError(
-      "Photo is larger than the 75MB limit.",
+      "This photo is over the 75 MB limit. Try a smaller copy.",
       "SIZE",
     );
   }
@@ -73,7 +69,7 @@ export async function decodeImageSource(file: File): Promise<{
   const mimeType = await sniffMime(file);
   if (!mimeType || !ACCEPTED_TYPES.has(mimeType)) {
     throw new ImportError(
-      "Use JPEG, PNG, WebP, or HEIC/HEIF.",
+      "That file type isn't supported. Use JPEG, PNG, WebP, or HEIC.",
       "TYPE",
     );
   }
@@ -98,19 +94,19 @@ export async function decodeImageSource(file: File): Promise<{
       try {
         bitmap = await decodeHeicBlob(file);
       } catch (error) {
-        if (
-          error instanceof Error &&
-          error.message.includes("60 megapixel")
-        ) {
+        if (error instanceof Error && error.message.includes("60 megapixel")) {
           throw new ImportError(error.message, "DIMENSIONS");
         }
         throw new ImportError(
-          "This HEIC photo could not be decoded. Try exporting it again from Photos.",
+          "This HEIC photo can't be opened. Try saving a JPEG copy from your photo library.",
           "HEIC_UNSUPPORTED",
         );
       }
     } else {
-      throw new ImportError("Could not decode this photo.", "DECODE");
+      throw new ImportError(
+        "This photo can't be opened. Try saving a JPEG or PNG copy and opening that.",
+        "DECODE",
+      );
     }
   }
 
@@ -125,7 +121,10 @@ export async function decodeImageSource(file: File): Promise<{
         "HEIC_UNSUPPORTED",
       );
     }
-    throw new ImportError("Could not decode this photo.", "DECODE");
+    throw new ImportError(
+      "This photo can't be opened. Try saving a JPEG or PNG copy and opening that.",
+      "DECODE",
+    );
   }
 
   const megapixels = (width * height) / 1_000_000;
@@ -134,7 +133,7 @@ export async function decodeImageSource(file: File): Promise<{
       bitmap.close();
     }
     throw new ImportError(
-      "Photo exceeds the 60 megapixel limit.",
+      "This photo is over the 60 megapixel limit. Try a smaller copy.",
       "DIMENSIONS",
     );
   }
@@ -218,7 +217,10 @@ function isHeicMime(mimeType: string): boolean {
 let workerRequestId = 0;
 
 async function decodeHeicBlob(source: Blob): Promise<ImageBitmap> {
-  if (typeof Worker === "undefined" || typeof createImageBitmap !== "function") {
+  if (
+    typeof Worker === "undefined" ||
+    typeof createImageBitmap !== "function"
+  ) {
     throw new Error("HEIC fallback is not available in this browser.");
   }
 
@@ -273,7 +275,7 @@ async function decodeHeicBlob(source: Blob): Promise<ImageBitmap> {
 
   if ((result.width * result.height) / 1_000_000 > MAX_MEGAPIXELS) {
     throw new ImportError(
-      "Photo exceeds the 60 megapixel limit.",
+      "This photo is over the 60 megapixel limit. Try a smaller copy.",
       "DIMENSIONS",
     );
   }

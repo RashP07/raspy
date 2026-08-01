@@ -176,8 +176,8 @@ export function ExportSheet({
         if (exporting) return;
         onOpenChange(next);
       }}
-      title="Save"
-      description="Format, quality, and size."
+      title={canShareFiles ? "Share photo" : "Save photo"}
+      description="Choose how this photo is saved."
       className="border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]"
     >
       <div
@@ -229,13 +229,14 @@ export function ExportSheet({
               />
             ))}
           </div>
-          <p className={`text-[13px] ${MUTED}`}>
-            {dimensions.actual.width} × {dimensions.actual.height} px
+          <p className={`text-[13px] tabular-nums whitespace-nowrap ${MUTED}`}>
+            {dimensions.actual.width} × {dimensions.actual.height}&nbsp;px
           </p>
           {dimensions.reduced ? (
-            <p className={`text-[13px] ${MUTED}`}>
+            <p className={`text-[13px] text-pretty ${MUTED}`}>
               Reduced from {dimensions.requested.width} ×{" "}
-              {dimensions.requested.height} for safe export on this device.
+              {dimensions.requested.height} px — this device can't render a
+              larger image.
             </p>
           ) : null}
         </section>
@@ -258,7 +259,7 @@ export function ExportSheet({
               max={1}
               step={0.01}
               disabled={exporting}
-              aria-label="Export quality"
+              aria-label="Quality"
               onValueChange={setQuality}
             />
           </section>

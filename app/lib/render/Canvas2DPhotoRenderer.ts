@@ -91,10 +91,7 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
   ): Promise<Blob> {
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
     onProgress?.(0.2);
-    const { width, height } = this.getExportDimensions(
-      project,
-      options,
-    ).actual;
+    const { width, height } = this.getExportDimensions(project, options).actual;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;

@@ -57,12 +57,10 @@ self.onmessage = async (event: MessageEvent<DecodeRequest>) => {
 
     const pixels = new Uint8ClampedArray(width * height * 4);
     const decoded = await new Promise<HeifDisplayData>((resolve, reject) => {
-      image.display(
-        { data: pixels, width, height },
-        (result) =>
-          result
-            ? resolve(result)
-            : reject(new Error("HEIC pixel decoding failed.")),
+      image.display({ data: pixels, width, height }, (result) =>
+        result
+          ? resolve(result)
+          : reject(new Error("HEIC pixel decoding failed.")),
       );
     });
 

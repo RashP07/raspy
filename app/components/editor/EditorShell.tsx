@@ -218,7 +218,7 @@ export function EditorShell({
               onNewPhoto();
             }}
           >
-            Discard & open new
+            Discard and open another photo
           </Button>
           <Button
             variant="ghost"

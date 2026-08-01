@@ -10,14 +10,13 @@ const plex = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SimplyEdit",
-  description:
-    "Privacy-first photo editor. Adjust, crop, and export — entirely on your device.",
+  title: "SimplyEdit — private photo editor",
+  description: "Photos and edits never leave this device.",
   applicationName: "SimplyEdit",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SimplyEdit",
+    title: "SimplyEdit — private photo editor",
   },
   formatDetection: {
     telephone: false,

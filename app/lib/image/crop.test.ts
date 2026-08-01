@@ -23,18 +23,12 @@ describe("crop geometry", () => {
   });
 
   it("fits and normalizes bounds", () => {
-    const fitted = fitAspectBounds(
-      1,
-      200,
-      100,
-      0,
-      {
-        x: 0,
-        y: 0,
-        width: 1,
-        height: 1,
-      },
-    );
+    const fitted = fitAspectBounds(1, 200, 100, 0, {
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    });
     expect(fitted.width * 200).toBeCloseTo(fitted.height * 100);
     expect(fitted.x + fitted.width).toBeLessThanOrEqual(1.0001);
     expect(fitted.y + fitted.height).toBeLessThanOrEqual(1.0001);

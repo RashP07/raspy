@@ -1,7 +1,4 @@
-import {
-  transformPoint,
-  type RenderGeometry,
-} from "@/app/lib/image/geometry";
+import { transformPoint, type RenderGeometry } from "@/app/lib/image/geometry";
 
 export type CanvasImageSourceLike = ImageBitmap | HTMLImageElement;
 
@@ -54,4 +51,3 @@ export function drawSourceWithGeometry(
   ctx.drawImage(source, 0, 0);
   ctx.restore();
 }
-

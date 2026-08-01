@@ -18,12 +18,13 @@ import {
   type EditorAction,
   type EditorState,
 } from "./reducer";
-import type {
-  AdjustmentKey,
-  CropState,
-  EditorMode,
-  EditorUiState,
-  ProjectState,
+import {
+  NO_WEBGL_MESSAGE,
+  type AdjustmentKey,
+  type CropState,
+  type EditorMode,
+  type EditorUiState,
+  type ProjectState,
 } from "./types";
 import { decodeImageSource, ImportError } from "@/app/lib/image/decode";
 import {
@@ -103,8 +104,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         if (!detail.supportsAdjustments) {
           dispatch({
             type: "SET_STORAGE_WARNING",
-            warning:
-              "WebGL2 unavailable — crop and export still work; adjustments are disabled.",
+            warning: {
+              title: "Adjustments unavailable",
+              message: NO_WEBGL_MESSAGE,
+            },
           });
         }
       }
@@ -117,7 +120,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     const onContextLost = () => {
       dispatch({
         type: "SET_STORAGE_WARNING",
-        warning: "Graphics context was interrupted. Restoring the preview…",
+        warning: {
+          title: "Restoring preview",
+          message:
+            "The graphics context was interrupted. Restoring the preview…",
+        },
       });
     };
     const onRendererStatus = (event: Event) => {
@@ -143,7 +150,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         if (mountedRef.current) {
           dispatch({
             type: "SET_STORAGE_WARNING",
-            warning: "Could not read local draft storage.",
+            warning: {
+              title: "Storage",
+              message: "Your last edit couldn't be read from this device.",
+            },
           });
         }
       }
@@ -174,7 +184,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         if (mountedRef.current) {
           dispatch({
             type: "SET_STORAGE_WARNING",
-            warning: "Autosave failed. Edits may not persist.",
+            warning: {
+              title: "Storage",
+              message: "Autosave failed. Your edits may not be here next time.",
+            },
           });
         }
       });
@@ -186,7 +199,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
   }, [state.project]);
 
   const importFile = useCallback(async (file: File) => {
-    dispatch({ type: "SET_BUSY", busy: "Importing photo…" });
+    dispatch({ type: "SET_BUSY", busy: "Opening photo…" });
     try {
       const decoded = await decodeImageSource(file);
       const project = createProject({
@@ -204,7 +217,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       const message =
         error instanceof ImportError
           ? error.message
-          : "Could not import this photo.";
+          : "This photo couldn't be opened.";
       throw new ImportError(
         message,
         error instanceof ImportError ? error.code : "DECODE",
@@ -222,7 +235,10 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     } catch {
       dispatch({
         type: "SET_STORAGE_WARNING",
-        warning: "Could not clear local draft.",
+        warning: {
+          title: "Storage",
+          message: "The saved draft couldn't be removed from this device.",
+        },
       });
     }
   }, []);

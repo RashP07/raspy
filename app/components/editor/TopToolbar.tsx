@@ -38,11 +38,11 @@ export function TopToolbar({
           variant="ghost"
           size="sm"
           className="se-control min-h-11 rounded-lg px-3 text-[15px] font-normal text-[var(--se-muted)]"
-          aria-label="Discard edits and open another photo"
+          aria-label="Start over with another photo"
           disabled={busy}
           onClick={onNewPhoto}
         >
-          Discard
+          New photo
         </Button>
       </div>
 

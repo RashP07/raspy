@@ -34,15 +34,7 @@ export interface AdjustmentState {
 }
 
 export type AspectRatio =
-  | "free"
-  | "original"
-  | "1:1"
-  | "4:3"
-  | "3:4"
-  | "3:2"
-  | "2:3"
-  | "16:9"
-  | "9:16";
+  "free" | "original" | "1:1" | "4:3" | "3:4" | "3:2" | "2:3" | "16:9" | "9:16";
 
 export interface CropState {
   bounds: { x: number; y: number; width: number; height: number };
@@ -120,6 +112,16 @@ export interface EditSnapshot {
   crop: CropState;
 }
 
+/** Shown both as a toast and inline in the adjust panel — keep them identical. */
+export const NO_WEBGL_MESSAGE =
+  "This browser can't run adjustments. Crop and save still work.";
+
+/** A non-blocking message shown to the user, with its own title. */
+export interface EditorNotice {
+  title: string;
+  message: string;
+}
+
 export interface EditorUiState {
   mode: EditorMode;
   activeAdjustment: AdjustmentKey;
@@ -127,7 +129,7 @@ export interface EditorUiState {
   exportOpen: boolean;
   hasWebGL: boolean;
   draftRestored: boolean;
-  storageWarning: string | null;
+  storageWarning: EditorNotice | null;
   busy: string | null;
   rendererStatus: "idle" | "loading" | "ready" | "recovering" | "error";
 }

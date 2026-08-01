@@ -63,7 +63,10 @@ export function playSliderTick(options?: { accent?: boolean }): void {
     const peak = accent ? 0.038 : 0.022;
     gain.gain.setValueAtTime(0.0001, t0);
     gain.gain.exponentialRampToValueAtTime(peak, t0 + 0.002);
-    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + (accent ? 0.028 : 0.016));
+    gain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      t0 + (accent ? 0.028 : 0.016),
+    );
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(t0);

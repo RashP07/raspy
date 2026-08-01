@@ -23,7 +23,8 @@ export interface StoredDraft {
 function openDb(): Promise<IDBDatabase> {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () => reject(request.error ?? new Error("idb open failed"));
+    request.onerror = () =>
+      reject(request.error ?? new Error("idb open failed"));
     request.onupgradeneeded = () => {
       const db = request.result;
       if (!db.objectStoreNames.contains(STORE)) {
@@ -37,7 +38,8 @@ function openDb(): Promise<IDBDatabase> {
 function req<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error ?? new Error("idb request failed"));
+    request.onerror = () =>
+      reject(request.error ?? new Error("idb request failed"));
   });
 }
 
