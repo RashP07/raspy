@@ -226,7 +226,7 @@ async function decodeHeicBlob(source: Blob): Promise<ImageBitmap> {
 
   const worker = new Worker(
     new URL("../../workers/heic-decoder.worker.ts", import.meta.url),
-    { type: "module", name: "simplyedit-heic-decoder" },
+    { type: "module", name: "raspy-heic-decoder" },
   );
   const id = ++workerRequestId;
   const sourceBuffer = await source.arrayBuffer();

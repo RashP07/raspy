@@ -1,4 +1,4 @@
-/** Cloudflare Worker entry point for SimplyEdit (Sites vinext starter). */
+/** Cloudflare Worker entry point for Raspy (Sites vinext starter). */
 import {
   handleImageOptimization,
   DEFAULT_DEVICE_SIZES,

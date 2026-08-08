@@ -1,6 +1,6 @@
 {
-  "name": "SimplyEdit",
-  "short_name": "SimplyEdit",
+  "name": "Raspy",
+  "short_name": "Raspy",
   "description": "Photos and edits never leave this device.",
   "start_url": "/",
   "display": "standalone",

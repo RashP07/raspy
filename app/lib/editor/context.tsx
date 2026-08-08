@@ -113,7 +113,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       }
     };
     window.addEventListener(
-      "simplyedit:renderer-capability",
+      "raspy:renderer-capability",
       onCapability as EventListener,
     );
 
@@ -137,7 +137,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     };
     window.addEventListener("webglcontextlost", onContextLost);
     window.addEventListener(
-      "simplyedit:renderer-status",
+      "raspy:renderer-status",
       onRendererStatus as EventListener,
     );
 
@@ -163,12 +163,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       mountedRef.current = false;
       if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       window.removeEventListener(
-        "simplyedit:renderer-capability",
+        "raspy:renderer-capability",
         onCapability as EventListener,
       );
       window.removeEventListener("webglcontextlost", onContextLost);
       window.removeEventListener(
-        "simplyedit:renderer-status",
+        "raspy:renderer-status",
         onRendererStatus as EventListener,
       );
     };

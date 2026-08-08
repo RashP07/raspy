@@ -1,5 +1,5 @@
-/* SimplyEdit service worker — app shell only. Never cache photo blobs. */
-const CACHE = "simplyedit-shell-v2";
+/* Raspy service worker — app shell only. Never cache photo blobs. */
+const CACHE = "raspy-shell-v2";
 const PRECACHE = [
   "/",
   "/manifest.webmanifest",

@@ -1,4 +1,4 @@
-# SimplyEdit
+# Raspy
 
 Privacy-first iPhone photo editor PWA. Adjust, crop, and export entirely on-device — no accounts, uploads, or cloud processing.
 

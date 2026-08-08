@@ -84,7 +84,7 @@ export function ImportScreen({
       <div className="mx-auto flex w-full max-w-md min-h-0 flex-1 flex-col">
         <header className="flex shrink-0 items-center justify-between">
           <span className="text-[15px] font-semibold tracking-[-0.01em]">
-            SimplyEdit
+            Raspy
           </span>
           <SettingsMenu />
         </header>

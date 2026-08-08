@@ -105,7 +105,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       event.preventDefault();
       this.contextLost = true;
       window.dispatchEvent(
-        new CustomEvent("simplyedit:renderer-status", {
+        new CustomEvent("raspy:renderer-status", {
           detail: { status: "recovering" },
         }),
       );
@@ -113,7 +113,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     this.onContextRestored = () => {
       this.contextLost = false;
       window.dispatchEvent(
-        new CustomEvent("simplyedit:renderer-status", {
+        new CustomEvent("raspy:renderer-status", {
           detail: { status: "recovering" },
         }),
       );
@@ -129,15 +129,15 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
         void this.load({ ...this.sourceAsset, preview: undefined })
           .then(() => {
             window.dispatchEvent(
-              new CustomEvent("simplyedit:renderer-status", {
+              new CustomEvent("raspy:renderer-status", {
                 detail: { status: "ready" },
               }),
             );
-            window.dispatchEvent(new Event("simplyedit:renderer-recovered"));
+            window.dispatchEvent(new Event("raspy:renderer-recovered"));
           })
           .catch(() => {
             window.dispatchEvent(
-              new CustomEvent("simplyedit:renderer-status", {
+              new CustomEvent("raspy:renderer-status", {
                 detail: { status: "error" },
               }),
             );

@@ -1,6 +1,6 @@
 # Third-party notices
 
-SimplyEdit includes `libheif-js` 1.19.8 for its lazy HEIC/HEIF import
+Raspy includes `libheif-js` 1.19.8 for its lazy HEIC/HEIF import
 fallback. `libheif-js` is licensed under LGPL-3.0 and is distributed in
 unmodified bundled form.
 

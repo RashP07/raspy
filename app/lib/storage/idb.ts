@@ -1,6 +1,6 @@
 import type { ProjectState } from "../editor/types";
 
-const DB_NAME = "simplyedit";
+const DB_NAME = "raspy";
 const DB_VERSION = 1;
 const STORE = "draft";
 const DRAFT_KEY = "active";

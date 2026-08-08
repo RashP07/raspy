@@ -1,6 +1,6 @@
 export type ThemePreference = "system" | "light" | "dark";
 
-export const THEME_STORAGE_KEY = "simplyedit:theme";
+export const THEME_STORAGE_KEY = "raspy:theme";
 
 /** Cycle order for the toolbar toggle. */
 export const THEME_ORDER: ThemePreference[] = ["system", "light", "dark"];

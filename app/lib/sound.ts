@@ -6,10 +6,10 @@
  * to flash, and nothing sounds until the user touches a control anyway.
  */
 
-export const SOUND_STORAGE_KEY = "simplyedit:sound";
+export const SOUND_STORAGE_KEY = "raspy:sound";
 
 /** Fired on this window whenever the preference changes. */
-export const SOUND_EVENT = "simplyedit:soundchange";
+export const SOUND_EVENT = "raspy:soundchange";
 
 /** On unless explicitly turned off: the ruler tick is part of the feel. */
 export function readStoredSound(): boolean {

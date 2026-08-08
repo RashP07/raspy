@@ -12,13 +12,13 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
-  title: "SimplyEdit — private photo editor",
+  title: "Raspy — private photo editor",
   description: "Photos and edits never leave this device.",
-  applicationName: "SimplyEdit",
+  applicationName: "Raspy",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "SimplyEdit — private photo editor",
+    title: "Raspy — private photo editor",
   },
   formatDetection: {
     telephone: false,

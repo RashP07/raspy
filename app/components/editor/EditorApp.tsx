@@ -132,7 +132,7 @@ function EditorAppInner() {
           setExportProgress(progress),
         );
         const base =
-          state.project.source.name.replace(/\.[^.]+$/, "") || "simplyedit";
+          state.project.source.name.replace(/\.[^.]+$/, "") || "raspy";
         const filename = `${base}-edit.${extensionFor(options.format)}`;
         const outcome = await shareOrDownload(blob, filename, options.format);
         if (outcome === "cancelled") {

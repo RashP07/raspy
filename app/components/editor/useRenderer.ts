@@ -87,14 +87,14 @@ export function useRenderer(
         }
         // Notify editor if adjustments are unavailable (Canvas2D fallback)
         window.dispatchEvent(
-          new CustomEvent("simplyedit:renderer-capability", {
+          new CustomEvent("raspy:renderer-capability", {
             detail: { supportsAdjustments: renderer.supportsAdjustments },
           }),
         );
       } catch {
         rendererRef.current = null;
         window.dispatchEvent(
-          new CustomEvent("simplyedit:renderer-capability", {
+          new CustomEvent("raspy:renderer-capability", {
             detail: { supportsAdjustments: false },
           }),
         );
@@ -178,9 +178,9 @@ export function useRenderer(
 
   useEffect(() => {
     const onRecovered = () => scheduleRender();
-    window.addEventListener("simplyedit:renderer-recovered", onRecovered);
+    window.addEventListener("raspy:renderer-recovered", onRecovered);
     return () =>
-      window.removeEventListener("simplyedit:renderer-recovered", onRecovered);
+      window.removeEventListener("raspy:renderer-recovered", onRecovered);
   }, [scheduleRender]);
 
   useEffect(() => {
