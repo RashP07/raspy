@@ -57,6 +57,16 @@ function createProgram(
 /** How long to wait for webglcontextrestored before falling back. */
 const RESTORE_TIMEOUT_MS = 8000;
 
+let exportRequestId = 0;
+
+function canUseWorkerExport(): boolean {
+  return (
+    typeof Worker !== "undefined" &&
+    typeof OffscreenCanvas !== "undefined" &&
+    typeof createImageBitmap === "function"
+  );
+}
+
 function abortError(): DOMException {
   return new DOMException("Aborted", "AbortError");
 }
@@ -445,6 +455,28 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
 
     onProgress?.(0.15);
 
+    // Preferred path: draw and encode in a worker so a large export does not
+    // block the UI thread. Tried before allocating anything here, so the
+    // common case never builds a main-thread context it will not use.
+    if (canUseWorkerExport()) {
+      try {
+        return await this.exportViaWorker(
+          project,
+          options,
+          width,
+          height,
+          signal,
+          onProgress,
+        );
+      } catch (error) {
+        if (signal.aborted || (error as Error)?.name === "AbortError")
+          throw error;
+        // Anything else means the worker path is unavailable on this browser
+        // — no OffscreenCanvas WebGL2, a blocked worker URL — and the
+        // main-thread path below still works.
+      }
+    }
+
     const exportCanvas = document.createElement("canvas");
     exportCanvas.width = width;
     exportCanvas.height = height;
@@ -663,6 +695,87 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
 
     onProgress?.(1);
     return blob;
+  }
+
+  /**
+   * Decode stays here because it owns the libheif fallback; the bitmap is then
+   * transferred to the worker, which does the GPU draw and the encode.
+   */
+  private async exportViaWorker(
+    project: ProjectState,
+    options: ExportOptions,
+    width: number,
+    height: number,
+    signal: AbortSignal,
+    onProgress?: (progress: number) => void,
+  ): Promise<Blob> {
+    const bitmap = await abortable(
+      createPreviewBitmap(project.source.blob, this.maxTextureSize),
+      signal,
+      closeBitmap,
+    );
+    onProgress?.(0.3);
+
+    const worker = new Worker(
+      new URL("../../workers/export.worker.ts", import.meta.url),
+      { type: "module", name: "raspy-export" },
+    );
+    const id = ++exportRequestId;
+
+    try {
+      return await new Promise<Blob>((resolve, reject) => {
+        const onAbort = () => reject(abortError());
+        signal.addEventListener("abort", onAbort, { once: true });
+
+        const settle = (fn: () => void) => {
+          signal.removeEventListener("abort", onAbort);
+          fn();
+        };
+
+        worker.onmessage = (event: MessageEvent) => {
+          const data = event.data as {
+            id: number;
+            type: "progress" | "done" | "error";
+            value?: number;
+            blob?: Blob;
+            message?: string;
+          };
+          if (data.id !== id) return;
+          if (data.type === "progress") {
+            onProgress?.(data.value ?? 0);
+          } else if (data.type === "done" && data.blob) {
+            settle(() => resolve(data.blob as Blob));
+          } else {
+            settle(() => reject(new Error(data.message ?? "Export failed")));
+          }
+        };
+        worker.onerror = () =>
+          settle(() => reject(new Error("Export worker failed")));
+
+        worker.postMessage(
+          {
+            id,
+            bitmap,
+            width,
+            height,
+            sourceWidth: project.source.width,
+            sourceHeight: project.source.height,
+            crop: project.crop,
+            adjustments: project.adjustments,
+            neutral: isNeutral(project),
+            format: options.format,
+            quality: options.quality,
+          },
+          [bitmap as unknown as Transferable],
+        );
+      });
+    } finally {
+      // Terminating is the cleanup: it takes the OffscreenCanvas, its GL
+      // context, and any in-flight encode with it, which is what makes abort
+      // immediate rather than cooperative.
+      worker.terminate();
+      onProgress?.(1);
+    }
   }
 
   private async exportVia2d(
