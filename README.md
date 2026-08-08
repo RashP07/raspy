@@ -11,7 +11,8 @@ can edit photos straight off an iPhone without handing them to an online
 converter first.
 
 **Stack:** React 19 · TypeScript · WebGL2 (GLSL ES 3.00) · Tailwind CSS 4 ·
-Web Workers · WebAssembly · IndexedDB · Service Worker · Vitest
+Web Workers · OffscreenCanvas · WebAssembly · IndexedDB · Service Worker ·
+Vitest + Testing Library
 
 ---
 
@@ -23,9 +24,9 @@ The phrase describes how the app is built, not just how it is marketed:
   page. There is no endpoint to send a photo to.
 - **No account, no telemetry, no server-side storage.** No database or object
   store is provisioned; the deployment serves static files only.
-- **Exports carry no metadata.** Encoding goes through `canvas.toBlob()` from
-  raw pixels, so EXIF and GPS are dropped — a shared photo does not carry the
-  location where it was taken.
+- **Exports carry no metadata.** The file is re-encoded from raw canvas pixels,
+  so EXIF and GPS are dropped — a shared photo does not carry the location where
+  it was taken.
 - **Your work survives a closed tab.** A single draft is kept in IndexedDB, on
   your machine, and restored when you come back.
 - **It works offline**, and the service worker is written so photo data can
@@ -69,7 +70,7 @@ RGBA, but every sample is converted to linear light through the exact piecewise
 IEC sRGB transfer function (cutoffs `0.04045` / `0.0031308`, exponent `2.4`),
 all tone and exposure maths runs in linear space, and the result is encoded back
 at the end. Luma uses the Rec.709 coefficients `(0.2126, 0.7152, 0.0722)`.
-Saturation and vibrancy deliberately step *back* into gamma space, because
+Saturation and vibrancy deliberately step _back_ into gamma space, because
 perceptual colour operations behave better there, then return to linear.
 
 Two shader details worth calling out:
@@ -88,19 +89,30 @@ Two shader details worth calling out:
 
 Noise reduction is an edge-aware **bilateral-style 3×3 kernel** weighted by
 `exp(-Δluma · k)`, so it smooths flat areas without dissolving edges. Highlights
-and shadows follow Apple's sign convention (positive highlights *darkens*), and
+and shadows follow Apple's sign convention (positive highlights _darkens_), and
 the chain ends with an exponential **soft clip** above 0.8 to roll off highlights
 instead of hard-clipping them.
 
 ## Preview and export are separate renderers
 
-Export does not reuse the on-screen canvas. It allocates its own offscreen
-canvas, its own WebGL2 context with `preserveDrawingBuffer`, and its own
-full-resolution texture — the preview stays on its 2048px texture untouched.
+Export does not reuse the on-screen canvas. It allocates its own canvas, its own
+WebGL2 context with `preserveDrawingBuffer`, and its own full-resolution texture
+— the preview stays on its 2048px texture untouched.
 
-This creates a subtle problem the code solves explicitly. The preview is
+**It also runs off the main thread.** The GPU draw and the encode happen in an
+`OffscreenCanvas` worker, which is where a large export spends its time and
+where the jank used to show. The decode deliberately stays on the main thread
+because it owns the libheif fallback; the resulting `ImageBitmap` is
+_transferred_ into the worker, so nothing is copied. Cancelling is then
+immediate rather than cooperative — terminating the worker takes its context and
+any in-flight encode with it. Browsers without OffscreenCanvas WebGL2 fall
+through to an equivalent main-thread path, which releases its GPU objects in a
+`finally` on every exit path, including abort.
+
+Rendering export separately creates a subtle problem the code solves
+explicitly. The preview is
 downscaled to a 2048px long edge, so a convolution kernel measured in texels
-covers a much larger *fraction* of the image on screen than it would at full
+covers a much larger _fraction_ of the image on screen than it would at full
 resolution. Exporting naively would make sharpening, definition, and noise
 reduction come out visibly weaker than what you approved. So export scales the
 kernel:
@@ -129,11 +141,20 @@ have been closed. Status is broadcast as `raspy:renderer-status` events so the
 UI can show a recovering state. This is the failure mode that kills naive WebGL
 apps on mobile when the OS reclaims GPU memory.
 
-Renderer selection is a plain `try/catch`: `WebGLPhotoRenderer`, falling back to
-`Canvas2DPhotoRenderer`, which shares the same geometry code so crop, rotation,
-flip, and DPR behave identically and only the colour work is missing. Async
-image loads carry a `loadVersion` counter so stale decodes are discarded and
-their bitmaps closed.
+When a context does **not** come back — no restore within 8 seconds, or a
+restore that yields an unusable context — the renderer stops waiting and emits
+`raspy:renderer-unrecoverable`, and the app **downgrades to Canvas 2D at
+runtime** rather than sitting on a dead canvas. That downgrade has a constraint
+worth knowing: a canvas that has handed out a WebGL context can never return a
+2D one, so the fallback remounts the `<canvas>` under a new React key and builds
+the replacement renderer on a fresh element. Crop and export keep working;
+only adjustments are lost.
+
+Initial renderer selection is a plain `try/catch`: `WebGLPhotoRenderer`, falling
+back to `Canvas2DPhotoRenderer`, which shares the same geometry code so crop,
+rotation, flip, and DPR behave identically and only the colour work is missing.
+Async image loads carry a `loadVersion` counter so stale decodes are discarded
+and their bitmaps closed.
 
 ## Render scheduling and device adaptation
 
@@ -154,7 +175,7 @@ thoroughly tested unit in the repo.
 Import is **native-first with a WebAssembly fallback**. `createImageBitmap(file,
 { imageOrientation: "from-image" })` handles JPEG, PNG, WebP, and — on Safari
 and modern Chrome — HEIC directly, letting the browser apply EXIF orientation.
-Only when that fails *and* the file sniffs as HEIC does the app spin up a
+Only when that fails _and_ the file sniffs as HEIC does the app spin up a
 **module Web Worker** that lazily `import()`s the libheif WASM bundle, decodes to
 RGBA off the main thread, and transfers the buffer back. The worker is created
 per decode and terminated in a `finally`, with a 45-second timeout.
@@ -242,16 +263,28 @@ Reduce Motion asks for less movement, not less sound.
 
 ## Testing
 
-23 Vitest unit tests across the pure logic: reducer history semantics
-(coalescing, undo/redo boundaries, the 50-entry cap), the display-scale
-heuristics (9 cases, each with stubbed globals since the module memoises), crop
-maths, and geometry including matrix invertibility and export-dimension
-clamping.
+65 Vitest tests across two projects — a `node` project for pure logic and a
+`jsdom` one for components, so the logic tests keep running without a DOM they
+never needed.
 
-Honest scope: these cover the algorithmic core, which is the part where a
-regression is silent. Components, the WebGL renderer, decode paths, and the
-service worker have **no automated coverage** — there is no jsdom, browser, or
-E2E layer. That is the most valuable next investment in this codebase.
+**Logic (31):** reducer history semantics including gesture coalescing, the
+undo/redo boundaries and the 50-entry cap; the display-scale heuristics, 9 cases
+each with stubbed globals since the module memoises; crop maths; geometry
+including matrix invertibility and export-dimension clamping; and IndexedDB
+round-trips against `fake-indexeddb`, covering the schema-version rejection and
+the rule that the source blob is stored rather than a decoded bitmap.
+
+**Components and integration (34):** the autosave debounce — that a burst of
+slider edits collapses to a single write, and that a failed write raises a
+warning instead of throwing; draft restore staying opt-in; import error, busy,
+and drag-affordance states, including the enter/leave pairing that used to make
+the drop highlight flicker; and the crop keyboard model — per-pixel arrows, 10×
+with Shift, Alt-resize holding the aspect ratio, and clamping at the edges.
+
+Honest scope: the WebGL renderer, the shaders, and the decode paths still have
+**no automated coverage**, because they need a real GPU and real image data.
+Verifying those means a browser-based layer — Playwright with WebGL enabled and
+golden-image comparison — which is the next worthwhile investment.
 
 ## Trade-offs and known limits
 
@@ -259,13 +292,13 @@ E2E layer. That is the most valuable next investment in this codebase.
   multi-pass blurs; every kernel is a fixed-tap approximation.
 - 8-bit textures throughout. Extreme exposure pushes can band; float textures
   would fix it at a memory and compatibility cost.
-- Export runs on the main thread in one draw call — it can jank briefly at very
-  large output sizes. `OffscreenCanvas` in a worker is the obvious next step.
 - Export progress is reported as fixed milestones, not measured work.
-- If a lost WebGL context fails to restore, the app reports the error but does
-  not fall back to the Canvas 2D renderer at runtime.
+- Browsers without OffscreenCanvas WebGL2 still export on the main thread and
+  can jank briefly at very large output sizes.
 - EXIF orientation relies on the browser; the `createImageBitmap` retry path and
   the libheif path do not apply it independently.
+- The Canvas 2D fallback is genuinely reduced: crop, orientation, and export
+  work, but no adjustment does.
 
 ---
 
@@ -295,7 +328,7 @@ app/lib/render/     WebGL2 renderer, GLSL shaders, Canvas2D fallback, DPR heuris
 app/lib/image/      decode + HEIC worker bridge, mat3 geometry, crop maths
 app/lib/editor/     reducer, context, types, defaults
 app/lib/storage/    IndexedDB draft persistence
-app/workers/        libheif WASM decode worker
+app/workers/        libheif WASM decode worker, OffscreenCanvas export worker
 app/components/     editor UI (viewport, panels, sheets, toolbar)
 components/ui/      primitives — ruler slider, sheet, toast, popover, switch
 public/sw.js        app-shell service worker
