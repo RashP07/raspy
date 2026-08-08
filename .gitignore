@@ -45,5 +45,36 @@ work/
 # Alternate package manager lockfile; this project tracks package-lock.json
 bun.lock
 
-# Hosting provider config (contains a project id)
+# Deploy and provider config — carries project ids, account ids, or secrets.
+# Keep these local; a public repo should build without them.
 .openai/
+.netlify
+.dev.vars
+.dev.vars.*
+wrangler.local.toml
+
+# Credentials and keys. *.pem is already covered above.
+*.key
+*.p8
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ed25519
+*.der
+credentials.json
+service-account*.json
+gha-creds-*.json
+secrets.json
+secrets.*.json
+*.secret
+.npmrc
+.yarnrc.yml
+.netrc
+
+# Editor and OS noise
+.idea/
+*.swp
+*.swo
+Thumbs.db
