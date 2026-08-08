@@ -35,6 +35,7 @@ export interface ViewportProps {
   sourceWidth: number;
   sourceHeight: number;
   canvasRef: (node: HTMLCanvasElement | null) => void;
+  canvasKey: number;
   onCropChange: (crop: Partial<CropState>, coalesce?: boolean) => void;
   onCropCommit: () => void;
   comparing: boolean;
@@ -94,6 +95,7 @@ export function Viewport({
   sourceWidth,
   sourceHeight,
   canvasRef,
+  canvasKey,
   onCropChange,
   onCropCommit,
   comparing,
@@ -606,6 +608,7 @@ export function Viewport({
         faster.
       </p>
       <canvas
+        key={canvasKey}
         ref={canvasRef}
         className={`absolute inset-0 h-full w-full transition-opacity duration-200 ${
           rendererStatus === "ready" ? "opacity-100" : "opacity-0"

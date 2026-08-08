@@ -54,6 +54,9 @@ function createProgram(
   return program;
 }
 
+/** How long to wait for webglcontextrestored before falling back. */
+const RESTORE_TIMEOUT_MS = 8000;
+
 function abortError(): DOMException {
   return new DOMException("Aborted", "AbortError");
 }
@@ -140,8 +143,32 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
   private contextLost = false;
   private sourceAsset: ProjectSource | null = null;
   private loadVersion = 0;
+  private restoreTimer: number | null = null;
+  private gaveUp = false;
   private onContextLost: (event: Event) => void;
   private onContextRestored: () => void;
+
+  /**
+   * A lost context normally restores within a frame or two. Past this the
+   * driver is not coming back — usually the OS reclaimed the GPU — and the
+   * editor is better off on the Canvas2D renderer than stuck on a spinner.
+   */
+  private giveUp(): void {
+    if (this.gaveUp) return;
+    this.gaveUp = true;
+    this.clearRestoreTimer();
+    window.dispatchEvent(
+      new CustomEvent("raspy:renderer-status", { detail: { status: "error" } }),
+    );
+    window.dispatchEvent(new Event("raspy:renderer-unrecoverable"));
+  }
+
+  private clearRestoreTimer(): void {
+    if (this.restoreTimer !== null) {
+      window.clearTimeout(this.restoreTimer);
+      this.restoreTimer = null;
+    }
+  }
 
   constructor(private canvas: HTMLCanvasElement) {
     const gl = canvas.getContext("webgl2", {
@@ -161,9 +188,14 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
           detail: { status: "recovering" },
         }),
       );
+      this.clearRestoreTimer();
+      this.restoreTimer = window.setTimeout(() => {
+        if (this.contextLost) this.giveUp();
+      }, RESTORE_TIMEOUT_MS);
     };
     this.onContextRestored = () => {
       this.contextLost = false;
+      this.clearRestoreTimer();
       window.dispatchEvent(
         new CustomEvent("raspy:renderer-status", {
           detail: { status: "recovering" },
@@ -175,7 +207,10 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
         preserveDrawingBuffer: false,
         powerPreference: "high-performance",
       });
-      if (!this.gl) return;
+      if (!this.gl) {
+        this.giveUp();
+        return;
+      }
       this.initGpu();
       if (this.sourceAsset) {
         void this.load({ ...this.sourceAsset, preview: undefined })
@@ -188,11 +223,9 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
             window.dispatchEvent(new Event("raspy:renderer-recovered"));
           })
           .catch(() => {
-            window.dispatchEvent(
-              new CustomEvent("raspy:renderer-status", {
-                detail: { status: "error" },
-              }),
-            );
+            // The context came back but the photo would not re-upload, so
+            // this renderer is done regardless.
+            this.giveUp();
           });
       }
     };
@@ -669,6 +702,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
   dispose(): void {
     this.disposed = true;
     this.loadVersion += 1;
+    this.clearRestoreTimer();
     this.canvas.removeEventListener("webglcontextlost", this.onContextLost);
     this.canvas.removeEventListener(
       "webglcontextrestored",

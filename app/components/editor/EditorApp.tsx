@@ -83,13 +83,14 @@ function EditorAppInner() {
     [],
   );
 
-  const { canvasRef, exportPhoto, getExportDimensions } = useRenderer(
-    state.project,
-    state.ui.comparing,
-    state.ui.mode,
-    viewTransform,
-    setRendererStatus,
-  );
+  const { canvasRef, canvasKey, exportPhoto, getExportDimensions } =
+    useRenderer(
+      state.project,
+      state.ui.comparing,
+      state.ui.mode,
+      viewTransform,
+      setRendererStatus,
+    );
   const runExport = usePhotoExport(exportPhoto);
 
   const handleImport = useCallback(
@@ -222,6 +223,7 @@ function EditorAppInner() {
           ) : (
             <EditorShell
               canvasRef={canvasRef}
+              canvasKey={canvasKey}
               onExport={handleExport}
               exportProgress={exportProgress}
               exportCancelling={exportCancelling}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { createRenderer } from "@/app/lib/render/createRenderer";
 import type {
   EditorMode,
@@ -13,6 +13,12 @@ import type {
 
 export interface UseRendererResult {
   canvasRef: (node: HTMLCanvasElement | null) => void;
+  /**
+   * Changes when the renderer must be rebuilt on a fresh canvas. Use it as the
+   * canvas `key`: a canvas that has handed out a WebGL context can never give
+   * back a 2D one, so falling back means replacing the element.
+   */
+  canvasKey: number;
   exportPhoto: (
     options: ExportOptions,
     signal: AbortSignal,
@@ -45,6 +51,8 @@ export function useRenderer(
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const loadedIdRef = useRef<string | null>(null);
   const readyRef = useRef(false);
+  const [canvasKey, setCanvasKey] = useState(0);
+  const preferCanvas2dRef = useRef(false);
 
   const scheduleRender = useCallback(() => {
     if (rafRef.current !== null) return;
@@ -78,7 +86,9 @@ export function useRenderer(
       if (!node) return;
 
       try {
-        const renderer = createRenderer(node);
+        const renderer = createRenderer(node, {
+          preferCanvas2d: preferCanvas2dRef.current,
+        });
         rendererRef.current = renderer;
         const parent = node.parentElement;
         if (parent) {
@@ -162,7 +172,7 @@ export function useRenderer(
     return () => {
       cancelled = true;
     };
-  }, [projectId, source, scheduleRender]);
+  }, [projectId, source, canvasKey, scheduleRender]);
 
   useEffect(() => {
     scheduleRender();
@@ -182,6 +192,25 @@ export function useRenderer(
     return () =>
       window.removeEventListener("raspy:renderer-recovered", onRecovered);
   }, [scheduleRender]);
+
+  // WebGL is gone for good: drop to the Canvas2D renderer rather than leave
+  // the editor on a dead canvas. Bumping the key remounts the element, which
+  // is the only way to get a 2D context after WebGL has claimed one.
+  useEffect(() => {
+    const onUnrecoverable = () => {
+      if (preferCanvas2dRef.current) return;
+      preferCanvas2dRef.current = true;
+      loadedIdRef.current = null;
+      readyRef.current = false;
+      setCanvasKey((key) => key + 1);
+    };
+    window.addEventListener("raspy:renderer-unrecoverable", onUnrecoverable);
+    return () =>
+      window.removeEventListener(
+        "raspy:renderer-unrecoverable",
+        onUnrecoverable,
+      );
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -220,6 +249,7 @@ export function useRenderer(
 
   return {
     canvasRef,
+    canvasKey,
     exportPhoto,
     getExportDimensions,
   };

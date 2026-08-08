@@ -34,6 +34,7 @@ import {
 
 export interface EditorShellProps {
   canvasRef: (node: HTMLCanvasElement | null) => void;
+  canvasKey: number;
   onExport: (options: ExportOptions) => void;
   exportProgress: number | null;
   exportCancelling?: boolean;
@@ -47,6 +48,7 @@ export interface EditorShellProps {
 
 export function EditorShell({
   canvasRef,
+  canvasKey,
   onExport,
   exportProgress,
   exportCancelling = false,
@@ -160,6 +162,7 @@ export function EditorShell({
           sourceWidth={project.source.width}
           sourceHeight={project.source.height}
           canvasRef={canvasRef}
+          canvasKey={canvasKey}
           onCropChange={setCrop}
           onCropCommit={commitHistory}
           comparing={ui.comparing}
