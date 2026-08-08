@@ -27,6 +27,9 @@ import { FlipVerticalIcon as PhFlipVerticalIcon } from "@phosphor-icons/react/di
 import { MonitorIcon } from "@phosphor-icons/react/dist/csr/Monitor";
 import { MoonIcon as PhMoonIcon } from "@phosphor-icons/react/dist/csr/Moon";
 import { SlidersHorizontalIcon } from "@phosphor-icons/react/dist/csr/SlidersHorizontal";
+import { GearSixIcon } from "@phosphor-icons/react/dist/csr/GearSix";
+import { SpeakerSimpleHighIcon } from "@phosphor-icons/react/dist/csr/SpeakerSimpleHigh";
+import { SpeakerSimpleSlashIcon } from "@phosphor-icons/react/dist/csr/SpeakerSimpleSlash";
 import { SparkleIcon } from "@phosphor-icons/react/dist/csr/Sparkle";
 import { SunIcon as PhSunIcon } from "@phosphor-icons/react/dist/csr/Sun";
 import { SunDimIcon } from "@phosphor-icons/react/dist/csr/SunDim";
@@ -63,6 +66,13 @@ export const CropModeIcon = PhCropIcon;
 export const ThemeLightIcon = PhSunIcon;
 export const ThemeDarkIcon = PhMoonIcon;
 export const ThemeSystemIcon = MonitorIcon;
+
+// Settings
+export const SettingsIcon = GearSixIcon;
+
+// Sound effects
+export const SoundOnIcon = SpeakerSimpleHighIcon;
+export const SoundOffIcon = SpeakerSimpleSlashIcon;
 
 // Crop tools
 export const RotateIcon = ArrowClockwiseIcon;

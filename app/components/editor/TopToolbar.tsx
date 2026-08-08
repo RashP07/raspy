@@ -2,7 +2,7 @@
 
 import { Button } from "@/components/ui/button";
 import { RedoIcon, ResetAllIcon, UndoIcon } from "@/components/ui/icons";
-import { ThemeToggle } from "./ThemeToggle";
+import { SettingsMenu } from "./SettingsMenu";
 
 export interface TopToolbarProps {
   canUndo: boolean;
@@ -86,7 +86,7 @@ export function TopToolbar({
       </div>
 
       <div className="flex items-center justify-end gap-1">
-        <ThemeToggle />
+        <SettingsMenu />
         <Button
           variant="primary"
           size="sm"
