@@ -18,6 +18,7 @@ import { BottomSheet } from "@/components/ui/sheet";
 import { AdjustModeIcon, CropModeIcon } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import { useEditor } from "@/app/lib/editor/context";
+import { playModeChange, unlockTickAudio } from "@/app/lib/audio/tick";
 import { AdjustPanel } from "./AdjustPanel";
 import { CropPanel } from "./CropPanel";
 import { ExportSheet } from "./ExportSheet";
@@ -175,6 +176,10 @@ export function EditorShell({
             value={ui.mode}
             onValueChange={(value) => {
               if (value === "adjust" || value === "crop") {
+                if (value !== ui.mode) {
+                  unlockTickAudio();
+                  playModeChange();
+                }
                 onViewTransformReset();
                 setMode(value);
               }

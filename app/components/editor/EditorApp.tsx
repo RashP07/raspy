@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ToastProvider, useToast } from "@/components/ui/toast";
+import { playConfirm, unlockTickAudio } from "@/app/lib/audio/tick";
 import { IconProvider } from "@/components/ui/icons";
 import { EditorProvider, useEditor } from "@/app/lib/editor/context";
 import type { ExportOptions } from "@/app/lib/editor/types";
@@ -117,6 +118,10 @@ function EditorAppInner() {
   const handleExport = useCallback(
     async (options: ExportOptions) => {
       if (!state.project) return;
+      // Still inside the click that started the export: the only moment a
+      // suspended context is allowed to resume, and the confirmation lands
+      // long after any gesture of its own.
+      unlockTickAudio();
       const controller = new AbortController();
       abortRef.current = controller;
       setExportProgress(0);
@@ -133,6 +138,9 @@ function EditorAppInner() {
         if (outcome === "cancelled") {
           showToast({ title: "Save cancelled", status: "neutral" });
         } else {
+          // Only a real save gets the flourish — a cancelled share is not a
+          // success, however far the export got.
+          playConfirm();
           showToast({
             title: outcome === "shared" ? "Shared" : "Saved",
             description:

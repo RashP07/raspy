@@ -9,6 +9,7 @@ import {
   RotateIcon,
 } from "@/components/ui/icons";
 import { RulerSlider } from "@/components/ui/ruler-slider";
+import { playSelect, unlockTickAudio } from "@/app/lib/audio/tick";
 import type { AspectRatio, CropState } from "@/app/lib/editor/types";
 import {
   aspectValue,
@@ -78,7 +79,13 @@ export function CropPanel({
     return [...PRIMARY_ASPECTS, { value: crop.aspect, label: crop.aspect }];
   }, [crop.aspect]);
 
+  const cue = () => {
+    unlockTickAudio();
+    playSelect();
+  };
+
   const setAspect = (aspect: AspectRatio) => {
+    cue();
     const ratio = aspectValue(aspect, sourceWidth, sourceHeight, crop.rotation);
     if (ratio === null) {
       onChange({ aspect }, false);
@@ -146,15 +153,16 @@ export function CropPanel({
             size="icon-sm"
             className="se-control text-[var(--se-fg)]"
             aria-label="Rotate right 90 degrees"
-            onClick={() =>
+            onClick={() => {
+              cue();
               onChange(
                 {
                   rotation: nextRotation(crop.rotation),
                   aspect: rotateAspect(crop.aspect),
                 },
                 false,
-              )
-            }
+              );
+            }}
           >
             <RotateIcon />
           </Button>
@@ -163,7 +171,10 @@ export function CropPanel({
             size="icon-sm"
             className="se-control text-[var(--se-fg)]"
             aria-label="Flip horizontal"
-            onClick={() => onChange({ flipX: !crop.flipX }, false)}
+            onClick={() => {
+              cue();
+              onChange({ flipX: !crop.flipX }, false);
+            }}
           >
             <FlipHorizontalIcon />
           </Button>
@@ -172,7 +183,10 @@ export function CropPanel({
             size="icon-sm"
             className="se-control text-[var(--se-fg)]"
             aria-label="Flip vertical"
-            onClick={() => onChange({ flipY: !crop.flipY }, false)}
+            onClick={() => {
+              cue();
+              onChange({ flipY: !crop.flipY }, false);
+            }}
           >
             <FlipVerticalIcon />
           </Button>
@@ -181,7 +195,10 @@ export function CropPanel({
             size="icon-sm"
             className="se-control text-[var(--se-muted)]"
             aria-label="Reset crop"
-            onClick={onReset}
+            onClick={() => {
+              cue();
+              onReset();
+            }}
           >
             <ResetCropIcon />
           </Button>

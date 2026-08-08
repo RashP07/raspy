@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { RulerSlider } from "@/components/ui/ruler-slider";
+import { playSelect, unlockTickAudio } from "@/app/lib/audio/tick";
 import { ADJUSTMENT_ICONS } from "@/components/ui/icons";
 import {
   ADJUSTMENT_KEYS,
@@ -180,9 +181,12 @@ export function AdjustPanel({
                 }
                 tabIndex={active ? 0 : -1}
                 disabled={disabled}
-                onClick={() =>
-                  active && adjusted ? onReset(key) : onSelect(key)
-                }
+                onClick={() => {
+                  unlockTickAudio();
+                  playSelect();
+                  if (active && adjusted) onReset(key);
+                  else onSelect(key);
+                }}
                 className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl p-1 text-center transition-[color,scale] duration-150 ease-out not-disabled:active:scale-[0.97] disabled:opacity-40"
               >
                 <AdjustmentDial
