@@ -44,3 +44,6 @@ work/
 
 # Alternate package manager lockfile; this project tracks package-lock.json
 bun.lock
+
+# Hosting provider config (contains a project id)
+.openai/

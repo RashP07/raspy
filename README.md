@@ -21,8 +21,8 @@ The phrase describes how the app is built, not just how it is marketed:
 
 - **No upload path exists.** Decoding, editing, and encoding all happen in the
   page. There is no endpoint to send a photo to.
-- **No account, no telemetry, no server-side storage.** D1 and R2 are `null` in
-  `.openai/hosting.json`; the deployment serves static files.
+- **No account, no telemetry, no server-side storage.** No database or object
+  store is provisioned; the deployment serves static files only.
 - **Exports carry no metadata.** Encoding goes through `canvas.toBlob()` from
   raw pixels, so EXIF and GPS are dropped — a shared photo does not carry the
   location where it was taken.
