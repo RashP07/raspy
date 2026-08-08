@@ -235,7 +235,7 @@ export function ExportSheet({
           {dimensions.reduced ? (
             <p className={`text-[14px] text-pretty ${MUTED}`}>
               Reduced from {dimensions.requested.width} ×{" "}
-              {dimensions.requested.height} px — this device can't render a
+              {dimensions.requested.height} px — this device can&apos;t render a
               larger image.
             </p>
           ) : null}
