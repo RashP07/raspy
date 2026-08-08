@@ -40,3 +40,7 @@ next-env.d.ts
 /.vinext/
 work/
 /.wrangler/
+/tmp/
+
+# Alternate package manager lockfile; this project tracks package-lock.json
+bun.lock
