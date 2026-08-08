@@ -54,6 +54,58 @@ function createProgram(
   return program;
 }
 
+function abortError(): DOMException {
+  return new DOMException("Aborted", "AbortError");
+}
+
+function closeBitmap(bitmap: ImageBitmap | HTMLImageElement): void {
+  if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
+}
+
+/**
+ * Rejects the moment the signal fires rather than at the next checkpoint, so
+ * cancelling during a decode or an encode is felt immediately. `onLateSettle`
+ * releases a value that arrives after we have already given up on it — without
+ * it, aborting mid-decode strands an ImageBitmap until GC.
+ */
+function abortable<T>(
+  promise: Promise<T>,
+  signal: AbortSignal,
+  onLateSettle?: (value: T) => void,
+): Promise<T> {
+  if (signal.aborted) {
+    if (onLateSettle) void promise.then(onLateSettle, () => {});
+    return Promise.reject(abortError());
+  }
+  return new Promise<T>((resolve, reject) => {
+    let settled = false;
+    const onAbort = () => {
+      settled = true;
+      reject(abortError());
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        if (settled) onLateSettle?.(value);
+        else resolve(value);
+      },
+      (error) => {
+        signal.removeEventListener("abort", onAbort);
+        if (!settled) reject(error);
+      },
+    );
+  });
+}
+
+/** GPU objects an export allocates, tracked so they can always be released. */
+interface ExportResources {
+  program: WebGLProgram | null;
+  buffer: WebGLBuffer | null;
+  vao: WebGLVertexArrayObject | null;
+  tex: WebGLTexture | null;
+}
+
 type UniformMap = Record<string, WebGLUniformLocation | null>;
 
 function getUniforms(
@@ -386,10 +438,58 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       );
     }
 
+    // renderExport records what it allocates in `held` so this finally can
+    // release it on every exit path — an abort mid-export used to skip the
+    // deletes entirely and strand them on the GPU.
+    const held: ExportResources = {
+      program: null,
+      buffer: null,
+      vao: null,
+      tex: null,
+    };
+    try {
+      return await this.renderExport(
+        project,
+        options,
+        exportCanvas,
+        exportGl,
+        width,
+        height,
+        signal,
+        onProgress,
+        held,
+      );
+    } finally {
+      if (held.tex) exportGl.deleteTexture(held.tex);
+      if (held.program) exportGl.deleteProgram(held.program);
+      if (held.buffer) exportGl.deleteBuffer(held.buffer);
+      if (held.vao) exportGl.deleteVertexArray(held.vao);
+      // Drops the drawing buffer now rather than waiting for the canvas to be
+      // collected, which matters at export resolutions.
+      exportGl.getExtension("WEBGL_lose_context")?.loseContext();
+      exportCanvas.width = 0;
+      exportCanvas.height = 0;
+    }
+  }
+
+  private async renderExport(
+    project: ProjectState,
+    options: ExportOptions,
+    exportCanvas: HTMLCanvasElement,
+    exportGl: WebGL2RenderingContext,
+    width: number,
+    height: number,
+    signal: AbortSignal,
+    onProgress: ((progress: number) => void) | undefined,
+    held: ExportResources,
+  ): Promise<Blob> {
     const program = createProgram(exportGl, FULLSCREEN_VERT, ADJUST_FRAG);
+    held.program = program;
     const uniforms = getUniforms(exportGl, program, Object.keys(this.uniforms));
     const buffer = exportGl.createBuffer();
+    held.buffer = buffer;
     const vao = exportGl.createVertexArray();
+    held.vao = vao;
     exportGl.bindVertexArray(vao);
     exportGl.bindBuffer(exportGl.ARRAY_BUFFER, buffer);
     exportGl.bufferData(
@@ -401,11 +501,12 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     exportGl.vertexAttribPointer(0, 2, exportGl.FLOAT, false, 0, 0);
 
     onProgress?.(0.3);
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    if (signal.aborted) throw abortError();
 
-    const bitmap = await createPreviewBitmap(
-      project.source.blob,
-      this.maxTextureSize,
+    const bitmap = await abortable(
+      createPreviewBitmap(project.source.blob, this.maxTextureSize),
+      signal,
+      closeBitmap,
     );
     const texW = bitmap.width;
     const texH = bitmap.height;
@@ -415,6 +516,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     const exportKernel = Math.max(1, Math.max(texW, texH) / PREVIEW_LONG_EDGE);
 
     const tex = exportGl.createTexture();
+    held.tex = tex;
     exportGl.bindTexture(exportGl.TEXTURE_2D, tex);
     exportGl.pixelStorei(exportGl.UNPACK_FLIP_Y_WEBGL, 0);
     exportGl.texParameteri(
@@ -445,10 +547,10 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       exportGl.UNSIGNED_BYTE,
       bitmap,
     );
-    if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
+    closeBitmap(bitmap);
 
     onProgress?.(0.55);
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    if (signal.aborted) throw abortError();
 
     const adj = project.adjustments;
     const geometry = computeRenderGeometry({
@@ -497,7 +599,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     exportGl.drawArrays(exportGl.TRIANGLE_STRIP, 0, 4);
 
     onProgress?.(0.8);
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    if (signal.aborted) throw abortError();
 
     let blob: Blob;
     if (options.format === "image/jpeg") {
@@ -510,15 +612,21 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(exportCanvas, 0, 0);
-      blob = await canvasToBlob(flat, options.format, options.quality);
+      try {
+        blob = await abortable(
+          canvasToBlob(flat, options.format, options.quality),
+          signal,
+        );
+      } finally {
+        flat.width = 0;
+        flat.height = 0;
+      }
     } else {
-      blob = await canvasToBlob(exportCanvas, options.format, options.quality);
+      blob = await abortable(
+        canvasToBlob(exportCanvas, options.format, options.quality),
+        signal,
+      );
     }
-
-    exportGl.deleteTexture(tex);
-    exportGl.deleteProgram(program);
-    exportGl.deleteBuffer(buffer);
-    exportGl.deleteVertexArray(vao);
 
     onProgress?.(1);
     return blob;
