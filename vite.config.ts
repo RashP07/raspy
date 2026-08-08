@@ -1,13 +1,23 @@
+import { existsSync, readFileSync } from "node:fs";
 import vinext from "vinext";
 import { defineConfig } from "vite";
 import { cloudflare } from "@cloudflare/vite-plugin";
-import hostingConfig from "./.openai/hosting.json";
 import { sites } from "./build/sites-vite-plugin";
 
 const SITE_CREATOR_PLACEHOLDER_DATABASE_ID =
   "00000000-0000-4000-8000-000000000000";
 
-const { d1, r2 } = hostingConfig;
+/**
+ * Deploy-time hosting config, kept out of the repo because it carries a
+ * project id. Absent in a fresh clone, which just means no bindings.
+ */
+const HOSTING_CONFIG_PATH = "./.openai/hosting.json";
+
+const { d1, r2 }: { d1: string | null; r2: string | null } = existsSync(
+  HOSTING_CONFIG_PATH,
+)
+  ? JSON.parse(readFileSync(HOSTING_CONFIG_PATH, "utf8"))
+  : { d1: null, r2: null };
 
 const localBindingConfig = {
   main: "./worker/index.ts",
