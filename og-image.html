@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Dark branch of the app palette — see app/globals.css. */
+      :root {
+        --bg: #0b0b0c;
+        --surface: #1a1a1d;
+        --fg: #f2f2f5;
+        --muted: #9c9ca6;
+        --hairline: rgb(255 255 255 / 0.1);
+        --hairline-strong: rgb(255 255 255 / 0.18);
+      }
+
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+
+      body {
+        width: 1200px;
+        height: 630px;
+        background: var(--bg);
+        color: var(--fg);
+        font-family: "Geist", ui-sans-serif, system-ui, sans-serif;
+        -webkit-font-smoothing: antialiased;
+        overflow: hidden;
+        position: relative;
+      }
+
+      /* The editor bleeds off the bottom-right; the page is the app's ground. */
+      .shot {
+        position: absolute;
+        right: 56px;
+        top: 118px;
+        height: 630px;
+        border-radius: 34px;
+        border: 1px solid var(--hairline);
+        box-shadow: 0 40px 90px rgb(0 0 0 / 0.55);
+      }
+
+      .fade {
+        position: absolute;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        height: 150px;
+        background: linear-gradient(transparent, var(--bg) 78%);
+      }
+
+      .copy {
+        position: absolute;
+        left: 72px;
+        top: 0;
+        bottom: 0;
+        width: 545px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding-bottom: 66px;
+      }
+
+      .wordmark {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin-bottom: 30px;
+      }
+
+      h1 {
+        font-size: 52px;
+        font-weight: 500;
+        line-height: 1.08;
+        letter-spacing: -0.028em;
+      }
+
+      .sub {
+        margin-top: 22px;
+        font-size: 23px;
+        line-height: 1.45;
+        color: var(--muted);
+      }
+
+      .chips {
+        display: flex;
+        gap: 9px;
+        margin-top: 36px;
+      }
+      .chip {
+        font-size: 16px;
+        color: var(--muted);
+        padding: 8px 15px;
+        border-radius: 999px;
+        border: 1px solid var(--hairline);
+        background: var(--surface);
+      }
+
+      .domain {
+        position: absolute;
+        left: 72px;
+        bottom: 52px;
+        font-size: 20px;
+        color: var(--muted);
+        letter-spacing: 0.005em;
+      }
+    </style>
+  </head>
+  <body>
+    <img class="shot" src="./og-editor.png" alt="" />
+    <div class="fade"></div>
+
+    <div class="copy">
+      <div class="wordmark">Raspy</div>
+      <h1>Edit photos that never leave your device.</h1>
+      <p class="sub">
+        A local-first photo editor in the browser.<br />
+        No account. No upload. Nothing to delete later.
+      </p>
+      <div class="chips">
+        <span class="chip">HEIC</span>
+        <span class="chip">JPEG</span>
+        <span class="chip">PNG</span>
+        <span class="chip">WebP</span>
+        <span class="chip">Works offline</span>
+      </div>
+    </div>
+
+    <div class="domain">raspy.rashmitaparmanik.com</div>
+  </body>
+</html>

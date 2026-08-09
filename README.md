@@ -321,6 +321,24 @@ npm run lint
 npm run build
 ```
 
+## Social preview image
+
+`public/og.png` (1200×630) backs the Open Graph and Twitter tags in
+`app/layout.tsx`, which resolve against `metadataBase`. It is rendered from
+`og-image.html` — a static page that composes the copy over `og-editor.png`, a
+crop of the real editor — so edit that file and re-shoot it rather than
+retouching the PNG:
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --headless=new --disable-gpu --hide-scrollbars --allow-file-access-from-files \
+  --virtual-time-budget=6000 --window-size=1200,630 --force-device-scale-factor=1 \
+  --screenshot=public/og.png "file://$PWD/og-image.html"
+```
+
+The service worker deliberately does not cache it — `sw.js` skips image
+requests outside `/icons/`.
+
 ## Architecture map
 
 ```

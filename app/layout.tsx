@@ -12,9 +12,34 @@ const geist = Geist({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://raspy.rashmitaparmanik.com"),
   title: "Raspy — private photo editor",
   description: "Photos and edits never leave this device.",
   applicationName: "Raspy",
+  openGraph: {
+    type: "website",
+    url: "/",
+    siteName: "Raspy",
+    title: "Raspy — private photo editor",
+    description:
+      "A local-first photo editor in the browser. No account, no upload, nothing to delete later.",
+    images: [
+      {
+        url: "/og.png",
+        width: 1200,
+        height: 630,
+        type: "image/png",
+        alt: "Raspy — edit photos that never leave your device.",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Raspy — private photo editor",
+    description:
+      "A local-first photo editor in the browser. No account, no upload, nothing to delete later.",
+    images: ["/og.png"],
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
