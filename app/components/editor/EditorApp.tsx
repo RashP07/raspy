@@ -83,6 +83,26 @@ function EditorAppInner() {
     [],
   );
 
+  // Mobile browsers start every AudioContext suspended and only let it resume
+  // inside a gesture. The individual controls unlock on their own handlers,
+  // but on a phone the first thing touched is usually the photo or a menu, so
+  // claim the very first gesture of the session instead of the first slider.
+  // iOS also suspends on backgrounding, hence re-arming when the page returns.
+  useEffect(() => {
+    const unlock = () => unlockTickAudio();
+    const events = ["pointerdown", "touchstart", "keydown"] as const;
+    for (const type of events) {
+      window.addEventListener(type, unlock, { capture: true, passive: true });
+    }
+    document.addEventListener("visibilitychange", unlock);
+    return () => {
+      for (const type of events) {
+        window.removeEventListener(type, unlock, { capture: true });
+      }
+      document.removeEventListener("visibilitychange", unlock);
+    };
+  }, []);
+
   const { canvasRef, canvasKey, exportPhoto, getExportDimensions } =
     useRenderer(
       state.project,

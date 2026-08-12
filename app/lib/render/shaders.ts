@@ -78,7 +78,7 @@ vec3 applyBrilliance(vec3 c, float amount) {
   float p = tonePos(luma(c));
   // Open shadows and low-mids, taper out before the highlight shoulder.
   float w = smoothstep(0.0, 0.50, p) * (1.0 - smoothstep(0.55, 0.95, p));
-  return c * exp2(a * 0.55 * w);
+  return c * exp2(a * 1.05 * w);
 }
 
 vec3 applyHighlightsShadows(vec3 c, float highlights, float shadows) {
@@ -88,26 +88,26 @@ vec3 applyHighlightsShadows(vec3 c, float highlights, float shadows) {
   // Apple Photos convention: positive highlights RECOVERS (darkens) the
   // brights; positive shadows OPENS them. Lightroom inverts the highlight
   // direction -- do not "fix" the sign here.
-  float hMask = smoothstep(0.50, 1.0, p);
-  float sMask = 1.0 - smoothstep(0.05, 0.50, p);
-  return c * exp2(-h * 1.0 * hMask + s * 1.1 * sMask);
+  float hMask = smoothstep(0.42, 1.0, p);
+  float sMask = 1.0 - smoothstep(0.05, 0.58, p);
+  return c * exp2(-h * 1.8 * hMask + s * 2.0 * sMask);
 }
 
 vec3 applyContrast(vec3 c, float contrast) {
   float a = contrast / 100.0;
-  return mix(vec3(0.18), c, pow(2.0, a));
+  return mix(vec3(0.18), c, pow(2.0, a * 1.4));
 }
 
 vec3 applyBrightness(vec3 c, float brightness) {
   float a = brightness / 100.0;
   float y = luma(c);
   if (y < 1e-5) return c;
-  float target = pow(clamp(y, 0.0, 1.0), pow(2.0, -a * 0.8));
+  float target = pow(clamp(y, 0.0, 1.0), pow(2.0, -a * 1.25));
   return c * (target / y);
 }
 
 vec3 applyBlackPoint(vec3 c, float blackPoint) {
-  float bp = (blackPoint / 100.0) * 0.04;
+  float bp = (blackPoint / 100.0) * 0.075;
   return (c - vec3(bp)) / (1.0 - bp);
 }
 
@@ -116,9 +116,9 @@ vec3 applyWhiteBalance(vec3 c, float warmth, float tint) {
   float w = warmth / 100.0;
   float t = tint / 100.0;
   vec3 gain = vec3(
-    1.0 + w * 0.30 + t * 0.10,
-    1.0 - t * 0.20,
-    1.0 - w * 0.30 + t * 0.10
+    1.0 + w * 0.48 + t * 0.16,
+    1.0 - t * 0.32,
+    1.0 - w * 0.48 + t * 0.16
   );
   // Renormalise on neutral so white balance changes colour, not exposure.
   return c * gain / max(luma(gain), 1e-4);
@@ -145,7 +145,7 @@ vec3 applyColor(vec3 c, float sat, float vib) {
 
   // Positive gain is compressed: a straight 2x drives the darkest channel of
   // ordinary skin and wood tones to black, where the clamp eats the hue.
-  float s = sa >= 0.0 ? 1.0 + sa * 0.75 : 1.0 + sa;
+  float s = sa >= 0.0 ? 1.0 + sa * 1.25 : 1.0 + sa;
   g = max(mix(vec3(y), g, s), 0.0);
 
   y = luma(g);
@@ -157,7 +157,7 @@ vec3 applyColor(vec3 c, float sat, float vib) {
   // Positive favours muted colour; negative must act broadly, or the pastels
   // grey out while the neons survive untouched.
   float weight = (va >= 0.0 ? 1.0 - high : mix(0.6, 1.0, high)) * protect;
-  float v = va >= 0.0 ? 1.0 + va * 0.9 * weight : 1.0 + va * weight;
+  float v = va >= 0.0 ? 1.0 + va * 1.5 * weight : 1.0 + va * weight;
   g = max(mix(vec3(y), g, v), 0.0);
 
   return srgbToLinear(g);
@@ -178,10 +178,10 @@ vec3 denoise(vec2 uv, float amount) {
   for (int y = -1; y <= 1; y++) {
     for (int x = -1; x <= 1; x++) {
       if (x == 0 && y == 0) continue;
-      vec2 o = vec2(float(x), float(y)) * u_texel * (1.0 + a * 1.5);
+      vec2 o = vec2(float(x), float(y)) * u_texel * (1.0 + a * 2.6);
       vec3 s = sampleLinear(uv + o);
       float dy = abs(luma(s) - cy);
-      float w = exp(-dy * (12.0 - a * 6.0));
+      float w = exp(-dy * (12.0 - a * 8.0));
       acc += s * w;
       wsum += w;
     }
@@ -208,8 +208,11 @@ vec3 definitionPass(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
   // per-channel form tinted edges (a near-zero raw channel blew its gain up).
   float yBase = luma(base);
   float gain = yBase / max(luma(rawCenter), 1e-4);
-  float high = clamp(yBase - luma(blurRaw) * gain, -0.12, 0.12);
-  return base * ((yBase + high * a * 1.4) / max(yBase, 1e-4));
+  float high = clamp(yBase - luma(blurRaw) * gain, -0.20, 0.20);
+  // Floor the result at a fraction of the original luma: a strong negative
+  // lobe on a near-black pixel would otherwise flip the sign and punch a hole.
+  float lifted = max(yBase + high * a * 2.6, yBase * 0.2);
+  return base * (lifted / max(yBase, 1e-4));
 }
 
 vec3 sharpen(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
@@ -222,9 +225,10 @@ vec3 sharpen(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
   float e = luma(sampleLinear(uv + vec2(1.0, 0.0) * u_texel)) * gain;
   float w = luma(sampleLinear(uv + vec2(-1.0, 0.0) * u_texel)) * gain;
   float edge = abs(yBase - n) + abs(yBase - s) + abs(yBase - e) + abs(yBase - w);
-  float mask = smoothstep(0.02, 0.18, edge);
-  float detail = clamp(yBase - (n + s + e + w) * 0.25, -0.08, 0.08);
-  return base * ((yBase + detail * a * 1.8 * mask) / max(yBase, 1e-4));
+  float mask = smoothstep(0.015, 0.14, edge);
+  float detail = clamp(yBase - (n + s + e + w) * 0.25, -0.14, 0.14);
+  float lifted = max(yBase + detail * a * 3.6 * mask, yBase * 0.2);
+  return base * (lifted / max(yBase, 1e-4));
 }
 
 vec3 applyVignette(vec3 c, vec2 uv, float amount) {
@@ -232,8 +236,8 @@ vec3 applyVignette(vec3 c, vec2 uv, float amount) {
   if (a < 0.001) return c;
   vec2 p = uv - 0.5;
   float d = length(p) * 1.41421356;
-  float vig = smoothstep(0.35, 1.05, d);
-  return c * (1.0 - vig * a * 0.85);
+  float vig = smoothstep(0.22, 1.05, d);
+  return c * (1.0 - vig * a * 0.97);
 }
 
 void main() {
