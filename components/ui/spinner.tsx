@@ -23,8 +23,8 @@ export function Spinner({
       aria-label={decorative ? undefined : label}
       aria-hidden={decorative || undefined}
       className={cn(
-        "inline-block animate-spin rounded-full border-2 border-[var(--se-hairline-strong)] border-t-[var(--se-active)]",
-        "motion-reduce:animate-pulse motion-reduce:border-t-[var(--se-hairline-strong)] motion-reduce:border-[var(--se-active)]",
+        "inline-block animate-spin rounded-pill border-2 border-hairline-strong border-t-active",
+        "motion-reduce:animate-pulse motion-reduce:border-t-hairline-strong motion-reduce:border-active",
         className,
       )}
       style={{ width: size, height: size }}

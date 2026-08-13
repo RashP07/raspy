@@ -621,7 +621,7 @@ export function Viewport({
         <div className="pointer-events-none absolute inset-0 grid place-items-center">
           <div
             role="status"
-            className="se-glass flex items-center gap-2 rounded-full px-3 py-2 text-sm text-[var(--se-fg)]/70"
+            className="se-glass flex items-center gap-2 rounded-pill px-3 py-2 text-sm text-fg/70"
           >
             <Spinner size={18} decorative />
             Preparing preview
@@ -632,7 +632,7 @@ export function Viewport({
       {rendererStatus === "error" ? (
         <div
           role="alert"
-          className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-balance text-[var(--se-danger)]"
+          className="pointer-events-none absolute inset-0 grid place-items-center px-8 text-center text-sm text-balance text-danger"
         >
           Preview unavailable. Reload the page to try again.
         </div>
@@ -646,7 +646,7 @@ export function Viewport({
             aria-hidden
           />
           {interacting || straightening ? (
-            <div className="se-hud-pill pointer-events-none left-1/2 top-[calc(var(--se-hud-inset)+env(safe-area-inset-top,0px))] -translate-x-1/2 text-[12px] tabular-nums">
+            <div className="se-hud-pill pointer-events-none left-1/2 top-[calc(var(--spacing-hud)+env(safe-area-inset-top,0px))] -translate-x-1/2 text-caption tabular-nums">
               {cropLabel}
             </div>
           ) : null}
@@ -654,7 +654,7 @@ export function Viewport({
       ) : null}
 
       {comparing ? (
-        <div className="se-hud-pill pointer-events-none left-1/2 top-[calc(var(--se-hud-inset)+env(safe-area-inset-top,0px))] -translate-x-1/2 text-[12px] font-semibold tracking-[0.14em] uppercase">
+        <div className="se-hud-pill pointer-events-none left-1/2 top-[calc(var(--spacing-hud)+env(safe-area-inset-top,0px))] -translate-x-1/2 text-caption font-semibold tracking-[0.14em] uppercase">
           Original
         </div>
       ) : null}
@@ -662,7 +662,7 @@ export function Viewport({
       {mode === "adjust" && viewTransform.zoom > 1 ? (
         <button
           type="button"
-          className="se-hud-pill inline-flex min-h-10 items-center bottom-[calc(var(--se-hud-inset)+env(safe-area-inset-bottom,0px))] end-[calc(var(--se-hud-inset)+env(safe-area-inset-right,0px))] text-[12px] font-medium tabular-nums"
+          className="se-hud-pill inline-flex min-h-10 items-center bottom-[calc(var(--spacing-hud)+env(safe-area-inset-bottom,0px))] end-[calc(var(--spacing-hud)+env(safe-area-inset-right,0px))] text-caption font-medium tabular-nums"
           aria-label={`Fit to screen, currently ${viewTransform.zoom.toFixed(1)}× zoom`}
           onPointerDown={(event) => event.stopPropagation()}
           onClick={() => onViewTransformChange({ zoom: 1, panX: 0, panY: 0 })}

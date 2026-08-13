@@ -30,9 +30,9 @@ export function MenuPopover({
         <Popover.Positioner side="bottom" align="end" sideOffset={8}>
           <Popover.Popup
             className={cn(
-              "z-50 min-w-64 origin-[var(--transform-origin)] rounded-xl p-3 outline-none",
-              "border border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]",
-              "shadow-[0_12px_32px_var(--se-shadow-strong)]",
+              "z-50 min-w-64 origin-[var(--transform-origin)] rounded-control p-3 outline-none",
+              "border border-hairline bg-surface text-fg",
+              "shadow-popover",
               "transition-[opacity,transform] duration-150 ease-out",
               "data-starting-style:scale-95 data-starting-style:opacity-0",
               "data-ending-style:scale-95 data-ending-style:opacity-0",

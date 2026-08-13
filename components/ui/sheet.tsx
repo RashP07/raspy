@@ -28,27 +28,27 @@ export function BottomSheet({
         <Drawer.Viewport className="fixed inset-0 flex items-end justify-center">
           <Drawer.Popup
             className={cn(
-              "scrollbar-none w-full max-w-[var(--se-stage-max,100%)] max-h-[min(85dvh,calc(100dvh-3rem))] overflow-y-auto overscroll-contain outline-none touch-auto",
-              "rounded-t-xl border border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]",
+              "scrollbar-none w-full max-w-[var(--stage-max,100%)] max-h-[min(85dvh,calc(100dvh-3rem))] overflow-y-auto overscroll-contain outline-none touch-auto",
+              "rounded-t-panel border border-hairline bg-surface text-fg",
               // Same gutter the editor chrome uses, so a sheet reads as the
               // same surface sliding up rather than a differently-inset one.
-              "px-(--se-gutter) pb-[calc(var(--se-gutter)+env(safe-area-inset-bottom,0px))] pt-3",
+              "px-(--spacing-gutter) pb-[calc(var(--spacing-gutter)+env(safe-area-inset-bottom,0px))] pt-3",
               "[transform:translateY(var(--drawer-swipe-movement-y))] transition-transform duration-[400ms] ease-[cubic-bezier(0.32,0.72,0,1)]",
               "data-swiping:select-none data-starting-style:[transform:translateY(100%)] data-ending-style:[transform:translateY(100%)]",
               className,
             )}
           >
-            <div className="mx-auto mb-3 h-1 w-9 rounded-full bg-[var(--se-hairline-strong)]" />
+            <div className="mx-auto mb-3 h-1 w-9 rounded-pill bg-hairline-strong" />
             <Drawer.Content className="mx-auto w-full max-w-lg">
               {title ? (
-                <Drawer.Title className="mb-1 text-center text-[16px] font-medium tracking-tight">
+                <Drawer.Title className="mb-1 text-center text-body font-medium tracking-tight">
                   {title}
                 </Drawer.Title>
               ) : (
                 <Drawer.Title className="sr-only">Sheet</Drawer.Title>
               )}
               {description ? (
-                <Drawer.Description className="mb-4 text-center text-[14px] text-[var(--se-muted)]">
+                <Drawer.Description className="mb-4 text-center text-label text-muted">
                   {description}
                 </Drawer.Description>
               ) : null}

@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type CSSProperties,
-} from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   Tabs,
   TabsContent,
@@ -131,16 +125,7 @@ export function EditorShell({
   );
 
   return (
-    <div
-      className="flex h-full min-h-0 w-full flex-col overflow-hidden"
-      style={
-        {
-          background: "var(--se-bg)",
-          color: "var(--se-fg)",
-          fontFamily: "var(--font-ui)",
-        } as CSSProperties
-      }
-    >
+    <div className="flex h-full min-h-0 w-full flex-col overflow-hidden bg-bg text-fg">
       <TopToolbar
         canUndo={canUndo}
         canRedo={canRedo}
@@ -252,13 +237,13 @@ export function EditorShell({
         onOpenChange={setNewPhotoOpen}
         title="Discard edits?"
         description="Your current edit will be removed from this device."
-        className="border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]"
+        className="border-hairline bg-surface text-fg"
       >
         <div className="flex flex-col gap-2">
           <Button
             variant="danger"
             size="lg"
-            className="w-full rounded-lg font-medium"
+            className="w-full rounded-control font-medium"
             onClick={() => {
               setNewPhotoOpen(false);
               onNewPhoto();
@@ -269,7 +254,7 @@ export function EditorShell({
           <Button
             variant="ghost"
             size="lg"
-            className="w-full text-[var(--se-muted)]"
+            className="w-full text-muted"
             onClick={() => setNewPhotoOpen(false)}
           >
             Keep editing

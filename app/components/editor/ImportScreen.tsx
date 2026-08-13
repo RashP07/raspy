@@ -51,16 +51,7 @@ export function ImportScreen({
 
   return (
     <div
-      className="relative flex h-full min-h-0 w-full flex-col"
-      style={{
-        background: "var(--se-bg)",
-        color: "var(--se-fg)",
-        fontFamily: "var(--font-ui)",
-        paddingTop: "max(1rem, env(safe-area-inset-top))",
-        paddingBottom: "max(1.5rem, env(safe-area-inset-bottom))",
-        paddingLeft: "max(1.5rem, env(safe-area-inset-left))",
-        paddingRight: "max(1.5rem, env(safe-area-inset-right))",
-      }}
+      className="se-page relative flex h-full min-h-0 w-full flex-col bg-bg text-fg"
       // The whole screen is the drop target, so nothing competes with the
       // button for the same job the way a separate dashed box did.
       onDragEnter={(event) => {
@@ -79,13 +70,14 @@ export function ImportScreen({
         void handleFiles(Array.from(event.dataTransfer.files));
       }}
     >
-      {/* Caps the measure so the headline stays readable and the button keeps
-          a button's proportions on a desktop window. */}
-      <div className="mx-auto flex w-full max-w-md min-h-0 flex-1 flex-col">
+      {/* The stage already caps its own width (480/520/560px), so the gutter
+          above is the only thing that should set the edges. A second cap here
+          used to win at the wider two steps and pushed the sides out to 56px
+          against a ~25px top and bottom, which is what read as lopsided. The
+          headline and the line under it carry their own measure caps. */}
+      <div className="flex w-full min-h-0 flex-1 flex-col">
         <header className="flex shrink-0 items-center justify-between">
-          <span className="text-[15px] font-semibold tracking-[-0.01em]">
-            Raspy
-          </span>
+          <span className="text-body font-semibold tracking-snug">Raspy</span>
           <SettingsMenu />
         </header>
 
@@ -93,24 +85,17 @@ export function ImportScreen({
           copy then reads as part of the same block as the action, and the
           empty room collects above instead of splitting evenly around it. */}
         <main className="flex min-h-0 flex-1 flex-col justify-end pt-8 pb-14">
-          <h1 className="max-w-[15ch] text-[34px] leading-[1.1] font-medium tracking-[-0.045em] text-balance">
+          <h1 className="max-w-[15ch] text-display font-medium text-balance">
             Edit photos that never leave your device.
           </h1>
-          <p
-            className="mt-4 max-w-[28ch] text-[16px] leading-snug text-balance"
-            style={{ color: "var(--se-muted)" }}
-          >
+          <p className="mt-4 max-w-[28ch] text-body leading-snug text-balance text-muted">
             No account. No upload. Nothing to delete later.
           </p>
         </main>
 
         <div className="flex shrink-0 flex-col gap-3">
           {error ? (
-            <p
-              role="alert"
-              className="text-[15px] leading-snug"
-              style={{ color: "var(--se-danger)" }}
-            >
+            <p role="alert" className="text-body leading-snug text-danger">
               {error}
             </p>
           ) : null}
@@ -137,15 +122,13 @@ export function ImportScreen({
               className="flex h-12 items-center justify-center gap-3"
             >
               <Spinner size={20} decorative />
-              <p className="text-[16px]" style={{ color: "var(--se-muted)" }}>
-                {busy}
-              </p>
+              <p className="text-body text-muted">{busy}</p>
             </div>
           ) : (
             <Button
               variant="primary"
               size="lg"
-              className="w-full rounded-xl font-medium"
+              className="w-full rounded-control font-medium"
               onClick={() => inputRef.current?.click()}
             >
               Open photo
@@ -156,17 +139,14 @@ export function ImportScreen({
             <Button
               variant="ghost"
               size="md"
-              className="w-full rounded-xl text-[var(--se-muted)] hover:text-[var(--se-fg)]"
+              className="w-full rounded-control text-muted hover:text-fg"
               onClick={onRestoreDraft}
             >
               Continue last edit
             </Button>
           ) : null}
 
-          <p
-            className="text-center text-[13px]"
-            style={{ color: "var(--se-muted)" }}
-          >
+          <p className="text-center text-caption text-muted">
             {FORMATS}
             <span className="hidden md:inline">
               {" "}
@@ -175,10 +155,7 @@ export function ImportScreen({
           </p>
 
           {draftRestored ? (
-            <p
-              className="text-center text-[12px]"
-              style={{ color: "var(--se-muted)" }}
-            >
+            <p className="text-center text-caption text-muted">
               Last edit restored from this device
             </p>
           ) : null}
@@ -188,8 +165,7 @@ export function ImportScreen({
       {dragging ? (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-3 rounded-2xl border-2 border-dashed"
-          style={{ borderColor: "var(--se-fg)", opacity: 0.35 }}
+          className="pointer-events-none absolute inset-3 rounded-panel border-2 border-dashed border-fg opacity-35"
         />
       ) : null}
     </div>

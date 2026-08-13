@@ -15,7 +15,7 @@ export interface ShowToastInput {
 }
 
 const statusAccent: Record<ToastStatus, string> = {
-  neutral: "border-[var(--se-hairline)]",
+  neutral: "border-hairline",
   info: "border-sky-500/40",
   success: "border-emerald-500/40",
   error: "border-red-500/45",
@@ -45,8 +45,8 @@ function ToastList() {
         toast={toast}
         className={cn(
           "absolute left-0 right-0 top-0 z-[calc(1000-var(--toast-index))] box-border",
-          "origin-top rounded-2xl border border-[var(--se-hairline)] bg-[var(--se-surface)]/95 text-[var(--se-fg)] backdrop-blur-md",
-          "shadow-[0_8px_28px_var(--se-shadow-strong)]",
+          "origin-top rounded-panel border border-hairline bg-surface/95 text-fg backdrop-blur-md",
+          "shadow-toast",
           "h-[var(--toast-height)] data-expanded:h-[var(--toast-height)]",
           "[transform:translateY(calc(var(--toast-index)*-0.25rem))_scale(calc(1-var(--toast-index)*0.04))]",
           "data-expanded:[transform:translateY(calc(var(--toast-index)*(var(--toast-height)+0.5rem)))]",
@@ -59,10 +59,10 @@ function ToastList() {
         <Toast.Content className="flex items-start gap-3 px-4 py-3">
           <div className="min-w-0 flex-1">
             <Toast.Title className="text-sm font-semibold" />
-            <Toast.Description className="text-xs break-words text-[var(--se-muted)]" />
+            <Toast.Description className="text-xs break-words text-muted" />
           </div>
           <Toast.Close
-            className="shrink-0 rounded-md p-2 text-[var(--se-muted)] hover:bg-[var(--se-hover)] hover:text-[var(--se-fg)]"
+            className="shrink-0 rounded-inset p-2 text-muted hover:bg-hover hover:text-fg"
             aria-label="Dismiss notification"
           >
             <CloseIcon size={14} />

@@ -106,7 +106,7 @@ export function SettingsMenu() {
         <Button
           variant="ghost"
           size="icon"
-          className="se-control text-[var(--se-fg)]"
+          className="se-control text-fg"
           aria-label="Settings"
           title="Settings"
         >
@@ -116,13 +116,13 @@ export function SettingsMenu() {
     >
       <div className="flex flex-col gap-4">
         <section className="flex flex-col gap-2">
-          <h2 className="text-[12px] font-medium tracking-[0.04em] text-[var(--se-muted)] uppercase">
+          <h2 className="text-caption font-medium tracking-label text-muted uppercase">
             Appearance
           </h2>
           <div
             role="radiogroup"
             aria-label="Appearance"
-            className="flex gap-1 rounded-lg bg-[var(--se-track)] p-1"
+            className="flex gap-1 rounded-control bg-track p-1"
           >
             {THEME_ORDER.map((option) => {
               const active = theme === option;
@@ -148,10 +148,10 @@ export function SettingsMenu() {
         <section className="flex items-center justify-between gap-4">
           <label
             htmlFor="setting-sound"
-            className="flex flex-col text-[15px] font-medium"
+            className="flex flex-col text-body font-medium"
           >
-            Sound effects
-            <span className="text-[13px] font-normal text-[var(--se-muted)]">
+            Sound &amp; haptics
+            <span className="text-caption font-normal text-muted">
               Ticks and clicks while editing
             </span>
           </label>
@@ -176,10 +176,8 @@ export function SettingsMenu() {
 
 function cnTab(active: boolean): string {
   return [
-    "flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-md px-2",
-    "text-[13px] font-medium transition-[color,background-color] duration-150 ease-out",
-    active
-      ? "bg-[var(--se-raised)] text-[var(--se-active)] shadow-[0_1px_3px_var(--se-shadow)]"
-      : "text-[var(--se-muted)] hover:text-[var(--se-fg)]",
+    "flex min-h-9 flex-1 items-center justify-center gap-1.5 rounded-inset px-2",
+    "text-caption font-medium transition-[color,background-color] duration-150 ease-out",
+    active ? "bg-raised text-active shadow-raised" : "text-muted hover:text-fg",
   ].join(" ");
 }

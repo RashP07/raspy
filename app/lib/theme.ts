@@ -5,7 +5,7 @@ export const THEME_STORAGE_KEY = "raspy:theme";
 /** Cycle order for the toolbar toggle. */
 export const THEME_ORDER: ThemePreference[] = ["system", "light", "dark"];
 
-/** Kept in step with --se-chrome, which is what sits behind the browser bar. */
+/** Kept in step with --color-chrome, which is what sits behind the browser bar. */
 export const THEME_COLORS: Record<"light" | "dark", string> = {
   light: "#f2f2f4",
   dark: "#0b0b0c",

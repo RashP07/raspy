@@ -2,6 +2,7 @@
 
 import { useMemo, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import {
   FlipHorizontalIcon,
   FlipVerticalIcon,
@@ -139,19 +140,13 @@ export function CropPanel({
   };
 
   return (
-    <div
-      className="se-crop-panel"
-      style={{
-        color: "var(--se-fg)",
-        fontFamily: "var(--font-ui)",
-      }}
-    >
+    <div className="se-crop-panel text-fg">
       <div className="flex items-center justify-center gap-3">
         <div className="flex items-center gap-1">
           <Button
             variant="ghost"
             size="icon-sm"
-            className="se-control text-[var(--se-fg)]"
+            className="se-control text-fg"
             aria-label="Rotate right 90 degrees"
             onClick={() => {
               cue();
@@ -169,7 +164,7 @@ export function CropPanel({
           <Button
             variant="ghost"
             size="icon-sm"
-            className="se-control text-[var(--se-fg)]"
+            className="se-control text-fg"
             aria-label="Flip horizontal"
             onClick={() => {
               cue();
@@ -181,7 +176,7 @@ export function CropPanel({
           <Button
             variant="ghost"
             size="icon-sm"
-            className="se-control text-[var(--se-fg)]"
+            className="se-control text-fg"
             aria-label="Flip vertical"
             onClick={() => {
               cue();
@@ -193,7 +188,7 @@ export function CropPanel({
           <Button
             variant="ghost"
             size="icon-sm"
-            className="se-control text-[var(--se-muted)]"
+            className="se-control text-muted"
             aria-label="Reset crop"
             onClick={() => {
               cue();
@@ -219,10 +214,10 @@ export function CropPanel({
                 aria-checked={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setActiveTool(tool.value)}
-                className="min-h-10 rounded-lg px-3 text-[14px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-[var(--se-hover)] active:scale-[0.96]"
-                style={{
-                  color: active ? "var(--se-active)" : "var(--se-muted)",
-                }}
+                className={cn(
+                  "min-h-10 rounded-control px-3 text-label font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-hover active:scale-[0.96]",
+                  active ? "text-active" : "text-muted",
+                )}
               >
                 {tool.label}
               </button>
@@ -248,14 +243,12 @@ export function CropPanel({
                 aria-checked={active}
                 tabIndex={active ? 0 : -1}
                 onClick={() => setAspect(option.value)}
-                className="min-h-10 shrink-0 rounded-lg px-3 text-[14px] font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-[var(--se-hover)] active:scale-[0.96]"
-                style={{
-                  color: active ? "var(--se-active)" : "var(--se-muted)",
-                  background: active ? "var(--se-selected-bg)" : "transparent",
-                  border: active
-                    ? "1px solid var(--se-hairline)"
-                    : "1px solid transparent",
-                }}
+                className={cn(
+                  "min-h-10 shrink-0 rounded-control border px-3 text-label font-medium transition-[color,background-color,scale] duration-150 ease-out hover:bg-hover active:scale-[0.96]",
+                  active
+                    ? "border-hairline bg-selected text-active"
+                    : "border-transparent text-muted",
+                )}
               >
                 {option.label}
               </button>
@@ -265,17 +258,12 @@ export function CropPanel({
       ) : (
         <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="text-[12px] font-medium text-[var(--se-fg)]">
-              Straighten
-            </span>
+            <span className="text-caption font-medium text-fg">Straighten</span>
             <span
-              className="tabular-nums text-[14px] font-medium"
-              style={{
-                color:
-                  crop.straighten === 0
-                    ? "var(--se-muted)"
-                    : "var(--se-active)",
-              }}
+              className={cn(
+                "tabular-nums text-label font-medium",
+                crop.straighten === 0 ? "text-muted" : "text-active",
+              )}
             >
               {crop.straighten > 0 ? "+" : ""}
               {Math.round(crop.straighten)}°

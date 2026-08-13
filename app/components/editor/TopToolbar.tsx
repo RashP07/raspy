@@ -28,18 +28,12 @@ export function TopToolbar({
   onExport,
 }: TopToolbarProps) {
   return (
-    <header
-      className="se-toolbar relative z-20 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center"
-      style={{
-        color: "var(--se-fg)",
-        fontFamily: "var(--font-ui)",
-      }}
-    >
+    <header className="se-toolbar relative z-20 grid shrink-0 grid-cols-[1fr_auto_1fr] items-center text-fg">
       <div className="flex items-center justify-start">
         <Button
           variant="ghost"
           size="md"
-          className="se-control se-edge-start rounded-lg font-normal text-[var(--se-muted)]"
+          className="se-control se-edge-start rounded-control font-normal text-muted"
           aria-label="Start over with another photo"
           disabled={busy}
           onClick={onNewPhoto}
@@ -52,7 +46,7 @@ export function TopToolbar({
         <Button
           variant="ghost"
           size="icon"
-          className="se-control text-[var(--se-fg)] disabled:opacity-45"
+          className="se-control text-fg disabled:opacity-45"
           aria-label="Undo"
           disabled={!canUndo || busy}
           onClick={onUndo}
@@ -62,7 +56,7 @@ export function TopToolbar({
         <Button
           variant="ghost"
           size="icon"
-          className="se-control text-[var(--se-fg)] disabled:opacity-45"
+          className="se-control text-fg disabled:opacity-45"
           aria-label="Redo"
           disabled={!canRedo || busy}
           onClick={onRedo}
@@ -74,7 +68,7 @@ export function TopToolbar({
           <Button
             variant="ghost"
             size="icon"
-            className="se-control text-[var(--se-fg)] disabled:opacity-45"
+            className="se-control text-fg disabled:opacity-45"
             aria-label="Reset all adjustments"
             title="Reset all adjustments"
             disabled={busy}
@@ -90,7 +84,7 @@ export function TopToolbar({
         <Button
           variant="primary"
           size="sm"
-          className="rounded-full px-4 font-medium"
+          className="rounded-pill px-4 font-medium"
           aria-label="Save photo"
           disabled={busy}
           onClick={onExport}

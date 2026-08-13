@@ -8,6 +8,7 @@ import {
   type ReactNode,
 } from "react";
 import { RulerSlider } from "@/components/ui/ruler-slider";
+import { cn } from "@/lib/utils";
 import { playSelect, unlockTickAudio } from "@/app/lib/audio/tick";
 import { ADJUSTMENT_ICONS } from "@/components/ui/icons";
 import {
@@ -125,21 +126,9 @@ export function AdjustPanel({
   };
 
   return (
-    <div
-      className="se-adjust-panel"
-      style={{
-        color: "var(--se-fg)",
-        fontFamily: "var(--font-ui)",
-      }}
-    >
+    <div className="se-adjust-panel text-fg">
       {!hasWebGL ? (
-        <p
-          className="pb-2 text-center text-[12px]"
-          style={{
-            color: "var(--se-muted)",
-            borderBottom: "1px solid var(--se-hairline)",
-          }}
-        >
+        <p className="border-b border-hairline pb-2 text-center text-caption text-muted">
           {NO_WEBGL_MESSAGE}
         </p>
       ) : null}
@@ -187,7 +176,7 @@ export function AdjustPanel({
                   if (active && adjusted) onReset(key);
                   else onSelect(key);
                 }}
-                className="flex min-w-[4.5rem] shrink-0 snap-center flex-col items-center gap-1.5 rounded-xl p-1 text-center transition-[color,scale] duration-150 ease-out not-disabled:active:scale-[0.97] disabled:opacity-40"
+                className="flex min-w-18 shrink-0 snap-center flex-col items-center gap-1.5 rounded-control p-1 text-center transition-[color,scale] duration-150 ease-out not-disabled:active:scale-[0.97] disabled:opacity-40"
               >
                 <AdjustmentDial
                   active={active}
@@ -207,11 +196,10 @@ export function AdjustPanel({
                   // ("Noise Reduction") does not shove its neighbours up. Fixed
                   // px rather than em/unitless leading: 2.2em of an 11px font
                   // resolved to 24.2px, which is a seam on any 1x display.
-                  className="flex min-h-[28px] items-start justify-center text-[12px] leading-[14px] transition-colors"
-                  style={{
-                    color: active ? "var(--se-fg)" : "var(--se-muted)",
-                    fontWeight: active ? 600 : 500,
-                  }}
+                  className={cn(
+                    "flex min-h-7 items-start justify-center text-caption transition-colors",
+                    active ? "font-semibold text-fg" : "font-medium text-muted",
+                  )}
                 >
                   {label}
                 </span>
@@ -258,12 +246,9 @@ function AdjustmentDial({
 
   return (
     <span
-      className="se-dial"
+      className={cn("se-dial", active || adjusted ? "text-fg" : "text-muted")}
       data-active={active || undefined}
       aria-hidden
-      style={{
-        color: active || adjusted ? "var(--se-fg)" : "var(--se-muted)",
-      }}
     >
       {progress > 0.01 ? (
         <svg className="se-dial-ring" viewBox="0 0 52 52">
@@ -272,7 +257,7 @@ function AdjustmentDial({
             cy="26"
             r={radius}
             fill="none"
-            stroke="var(--se-fg)"
+            stroke="currentColor"
             strokeWidth="2"
             strokeLinecap="round"
             strokeDasharray={`${dash} ${circumference - dash}`}

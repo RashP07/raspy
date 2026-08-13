@@ -150,11 +150,11 @@ export function RangeSlider({
         className="relative z-10 w-full touch-none select-none"
       >
         <Slider.Control className="flex w-full items-center py-2.5">
-          <Slider.Track className="relative h-[2px] w-full rounded-full bg-[var(--se-hairline-strong)]">
-            <Slider.Indicator className="rounded-full bg-[var(--se-active)]" />
+          <Slider.Track className="relative h-0.5 w-full rounded-pill bg-hairline-strong">
+            <Slider.Indicator className="rounded-pill bg-active" />
             <Slider.Thumb
               aria-label={ariaLabel}
-              className="size-[22px] rounded-full bg-[var(--se-active)] outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--se-accent)]"
+              className="size-6 rounded-pill bg-active outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             />
           </Slider.Track>
         </Slider.Control>

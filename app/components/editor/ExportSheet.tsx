@@ -10,6 +10,7 @@ import {
 } from "react";
 import { BottomSheet } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { RangeSlider } from "@/components/ui/slider";
 import { Spinner } from "@/components/ui/spinner";
 import type {
@@ -50,7 +51,7 @@ const SIZES: { value: SizeOption; label: string }[] = [
   { value: "75-percent", label: "75%" },
   { value: "50-percent", label: "50%" },
 ];
-const MUTED = "text-[var(--se-muted)]";
+const MUTED = "text-muted";
 const subscribeToClient = () => () => {};
 
 function radioKeyNav<T>(
@@ -104,12 +105,12 @@ function OptionChip({
       disabled={disabled}
       onClick={onClick}
       onKeyDown={onKeyDown}
-      className="min-h-11 flex-1 rounded-lg border border-[var(--se-hairline)] text-[14px] font-medium transition-[color,background-color,box-shadow,scale] duration-150 ease-out not-disabled:hover:bg-[var(--se-hover)] not-disabled:active:scale-[0.96] disabled:opacity-40"
-      style={{
-        color: active ? "var(--se-active)" : "var(--se-muted)",
-        background: active ? "var(--se-selected-bg)" : "transparent",
-        boxShadow: active ? "0 0 0 1px var(--se-fg)" : undefined,
-      }}
+      className={cn(
+        "min-h-11 flex-1 rounded-control border border-hairline text-label font-medium transition-[color,background-color,box-shadow,scale] duration-150 ease-out not-disabled:hover:bg-hover not-disabled:active:scale-[0.96] disabled:opacity-40",
+        active
+          ? "bg-selected text-active shadow-[0_0_0_1px_var(--color-fg)]"
+          : "text-muted",
+      )}
     >
       {label}
     </button>
@@ -178,15 +179,12 @@ export function ExportSheet({
       }}
       title={canShareFiles ? "Share photo" : "Save photo"}
       description="Choose how this photo is saved."
-      className="border-[var(--se-hairline)] bg-[var(--se-surface)] text-[var(--se-fg)]"
+      className="border-hairline bg-surface text-fg"
     >
-      <div
-        className="flex flex-col gap-5"
-        style={{ fontFamily: "var(--font-ui)" }}
-      >
+      <div className="flex flex-col gap-5">
         <section className="flex flex-col gap-2">
           <h3
-            className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}
+            className={`text-caption font-medium uppercase tracking-label ${MUTED}`}
           >
             Format
           </h3>
@@ -205,7 +203,7 @@ export function ExportSheet({
             ))}
           </div>
           {showJpegAlphaWarning ? (
-            <p className={`text-[14px] ${MUTED}`}>
+            <p className={`text-label ${MUTED}`}>
               JPEG has no transparency — transparent areas become white.
             </p>
           ) : null}
@@ -213,7 +211,7 @@ export function ExportSheet({
 
         <section className="flex flex-col gap-2">
           <h3
-            className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}
+            className={`text-caption font-medium uppercase tracking-label ${MUTED}`}
           >
             Size
           </h3>
@@ -229,11 +227,11 @@ export function ExportSheet({
               />
             ))}
           </div>
-          <p className={`text-[14px] tabular-nums whitespace-nowrap ${MUTED}`}>
+          <p className={`text-label tabular-nums whitespace-nowrap ${MUTED}`}>
             {dimensions.actual.width} × {dimensions.actual.height}&nbsp;px
           </p>
           {dimensions.reduced ? (
-            <p className={`text-[14px] text-pretty ${MUTED}`}>
+            <p className={`text-label text-pretty ${MUTED}`}>
               Reduced from {dimensions.requested.width} ×{" "}
               {dimensions.requested.height} px — this device can&apos;t render a
               larger image.
@@ -245,11 +243,11 @@ export function ExportSheet({
           <section className="flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <h3
-                className={`text-[12px] font-medium uppercase tracking-wide ${MUTED}`}
+                className={`text-caption font-medium uppercase tracking-label ${MUTED}`}
               >
                 Quality
               </h3>
-              <span className={`tabular-nums text-[14px] font-medium ${MUTED}`}>
+              <span className={`tabular-nums text-label font-medium ${MUTED}`}>
                 {Math.round(quality * 100)}%
               </span>
             </div>
@@ -268,7 +266,7 @@ export function ExportSheet({
         {exporting ? (
           <div className="flex flex-col items-center gap-3 py-2">
             <Spinner size={28} decorative />
-            <p role="status" className={`text-[16px] tabular-nums ${MUTED}`}>
+            <p role="status" className={`text-body tabular-nums ${MUTED}`}>
               {cancelling
                 ? "Cancelling…"
                 : `Saving… ${Math.round((progress ?? 0) * 100)}%`}
@@ -290,7 +288,7 @@ export function ExportSheet({
             <Button
               variant="primary"
               size="lg"
-              className="w-full rounded-lg font-medium"
+              className="w-full rounded-control font-medium"
               onClick={() =>
                 onExport({
                   format,
@@ -304,7 +302,7 @@ export function ExportSheet({
             <Button
               variant="ghost"
               size="md"
-              className="w-full text-[var(--se-muted)]"
+              className="w-full text-muted"
               onClick={() => onOpenChange(false)}
             >
               Close

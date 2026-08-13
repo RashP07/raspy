@@ -1,79 +1,137 @@
 @import "tailwindcss";
 
-/* Every color is declared once as light-dark(light, dark); `color-scheme`
-   below picks the branch, so there is no second palette to keep in sync. */
+/* ---------------------------------------------------------------------------
+   Design tokens.
+
+   Everything the interface is allowed to use is declared once, here, inside
+   @theme — which is what makes it reachable from Tailwind. A token that lives
+   in a plain :root block is invisible to the framework, so components can only
+   apply it through an inline style or a bespoke class; that is how this file
+   grew a second palette and thirty-four one-off font sizes.
+
+   Registering them instead means `text-fg`, `bg-surface`, `rounded-control`
+   and `p-gutter` are real utilities, and the rules further down can spend
+   var() on the same values rather than restating them.
+   --------------------------------------------------------------------------- */
+
+@theme {
+  /* Colour — one palette. Every value is light-dark(), so `color-scheme`
+     below picks the branch and there is no second set to keep in sync.
+
+     Roles, not shades: a token is named for the job it does, so a component
+     never has to know whether the interface is currently light or dark. */
+  --color-bg: light-dark(#f2f2f4, #0b0b0c);
+  --color-fg: light-dark(#1c1c1e, #f2f2f5);
+  --color-muted: light-dark(#66666e, #9c9ca6);
+
+  /* Surfaces, in stacking order: the shell sits behind the stage, the stage on
+     --color-bg, panels on --color-surface, and anything that must read as
+     lifted off a panel on --color-raised. */
+  --color-shell: light-dark(#e6e6ea, #08080a);
+  --color-chrome: light-dark(#f2f2f4, #0b0b0c);
+  --color-surface: light-dark(#ffffff, #1a1a1d);
+  --color-raised: light-dark(#ffffff, #45454d);
+
+  /* The one high-contrast pair, used by the primary action and nothing else. */
+  --color-accent: light-dark(#1c1c1e, #f2f2f5);
+  --color-accent-hover: light-dark(#34343c, #dcdce2);
+  --color-accent-fg: light-dark(#ffffff, #141416);
+  /* Pure black/white rather than the accent: reserved for the element that has
+     to win against a photo — the ruler indicator, an active tab. */
+  --color-active: light-dark(#0a0a0a, #ffffff);
+
+  --color-danger: light-dark(#c32026, #ff6169);
+  --color-danger-fg: light-dark(#ffffff, #2b0509);
+
+  /* Separators and states, all translucent so they compose over any surface. */
+  --color-hairline: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
+  --color-hairline-strong: light-dark(
+    rgb(0 0 0 / 0.14),
+    rgb(255 255 255 / 0.18)
+  );
+  --color-hover: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
+  --color-selected: light-dark(rgb(0 0 0 / 0.075), rgb(255 255 255 / 0.11));
+  --color-track: light-dark(rgb(0 0 0 / 0.075), rgb(0 0 0 / 0.32));
+  --color-tick: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.22));
+  --color-tick-strong: light-dark(rgb(0 0 0 / 0.34), rgb(255 255 255 / 0.42));
+  --color-glass: light-dark(rgb(255 255 255 / 0.78), rgb(28 28 32 / 0.74));
+
+  --color-shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
+  --color-shadow-strong: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
+  /* Dark surfaces read as lifted by a top highlight, not by a drop shadow. */
+  --color-top-highlight: light-dark(transparent, rgb(255 255 255 / 0.07));
+
+  /* Type — four steps, which is all an interface this small can justify. The
+     ramp replaces six ad-hoc sizes (11/12/13/14/15/16) that differed by a
+     pixel in places no one could see. Each step carries its own leading, so a
+     size change never needs a matching leading change at the call site. */
+  --text-caption: 0.75rem; /* 12 — formats line, helper text */
+  --text-caption--line-height: 1rem;
+  --text-label: 0.875rem; /* 14 — control labels, dial values */
+  --text-label--line-height: 1.25rem;
+  --text-body: 1rem; /* 16 — default, and every button label */
+  --text-body--line-height: 1.375rem;
+  --text-display: 2rem; /* 32 — the one headline in the product */
+  --text-display--line-height: 1.1;
+  --text-display--letter-spacing: -0.045em;
+
+  /* Radius — three rungs, by role. Controls and the boxes that hold them share
+     one; anything that reads as a sheet of paper shares the next; anything
+     capsule-shaped is fully round. Replaces 6/8/10/12/16/18/20px. */
+  --radius-inset: 0.5rem; /* a control nested inside another control's padding */
+  --radius-control: 0.75rem; /* buttons, chips, wells, fields */
+  --radius-panel: 1.25rem; /* stage, tool deck, sheets, popovers */
+  --radius-pill: 999px;
+
+  /* Spacing rides Tailwind's own 4px ramp (p-2, gap-3, …). Only the two
+     alignment rules that recur get names, because they carry meaning that a
+     number does not. */
+  --tracking-snug: -0.01em; /* the wordmark, and anything set at display size */
+  --tracking-label: 0.04em; /* uppercase section headings, which need the air */
+
+  --spacing-gutter: 1rem; /* chrome: where toolbar, panels and ruler align */
+  --spacing-page: 1.5rem; /* editorial: the import screen's wider margin */
+  --spacing-hud: 0.75rem; /* viewport edge to anything floating on the photo */
+  --spacing-touch: 2.75rem; /* 44 — the minimum comfortable target */
+
+  /* Motion. `emphasized` is the iOS-style decelerate used by anything that
+     travels a distance — sheets, the segmented thumb, panel heights. Short
+     state changes stay on plain ease-out. */
+  --ease-emphasized: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --blur-glass: 12px;
+
+  /* Elevation, ordered by how far the thing is meant to sit off the surface.
+     `raised` and `thumb` are pressed against it; `deck` and `toast` float over
+     content; `popover` is the only one that reads as detached. */
+  --shadow-raised: 0 1px 3px var(--color-shadow);
+  --shadow-thumb:
+    0 0 0 1px var(--color-hairline), 0 1px 2px var(--color-shadow-strong),
+    inset 0 1px 0 var(--color-top-highlight);
+  --shadow-lifted: 0 2px 8px var(--color-shadow-strong);
+  --shadow-deck:
+    0 -10px 30px var(--color-shadow), inset 0 1px 0 var(--color-top-highlight);
+  --shadow-toast: 0 8px 28px var(--color-shadow-strong);
+  --shadow-popover: 0 12px 32px var(--color-shadow-strong);
+
+  /* The fallback inside var() matters: an undefined custom property would
+     invalidate the whole declaration and drop the app to the default serif. */
+  --font-sans: var(--font-geist, "Geist"), ui-sans-serif, system-ui, sans-serif;
+}
+
 :root {
   color-scheme: light dark;
 
-  --background: light-dark(#f2f2f4, #0b0b0c);
-  --foreground: light-dark(#1c1c1e, #f2f2f5);
-  --card: light-dark(#ffffff, #1a1a1d);
-  --card-foreground: light-dark(#1c1c1e, #f2f2f5);
-  --popover: light-dark(#ffffff, #1a1a1d);
-  --popover-foreground: light-dark(#1c1c1e, #f2f2f5);
-  --primary: light-dark(#1c1c1e, #f2f2f5);
-  --primary-foreground: light-dark(#ffffff, #141416);
-  --secondary: light-dark(#e9e9ec, #232327);
-  --secondary-foreground: light-dark(#1c1c1e, #f2f2f5);
-  --muted: light-dark(#e9e9ec, #232327);
-  --muted-foreground: light-dark(#66666e, #9c9ca6);
-  --accent: light-dark(#1c1c1e, #f2f2f5);
-  --accent-foreground: light-dark(#ffffff, #141416);
-  --destructive: light-dark(#c32026, #ff6169);
-  --destructive-foreground: light-dark(#ffffff, #2b0509);
-  --border: light-dark(#dcdce0, #2e2e33);
-  --input: light-dark(#dcdce0, #2e2e33);
-  --ring: light-dark(#1c1c1e, #f2f2f5);
-  --panel: light-dark(#f2f2f4, #0b0b0c);
-  --panel-elevated: light-dark(#ffffff, #1a1a1d);
-  --danger: light-dark(#c32026, #ff6169);
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
-  /* The fallback inside var() matters: an undefined custom property would
-     invalidate the whole declaration and drop the app to the default serif. */
-  --font-ui: var(--font-geist, "Geist"), ui-sans-serif, system-ui, sans-serif;
-  --se-bg: light-dark(#f2f2f4, #0b0b0c);
-  --se-chrome: light-dark(#f2f2f4, #0b0b0c);
-  --se-surface: light-dark(#ffffff, #1a1a1d);
-  /* Sits *above* --se-surface: the segmented thumb, and anything that has to
-     read as lifted. In dark it is lighter than the surface, not white. */
-  --se-raised: light-dark(#ffffff, #45454d);
-  --se-fg: light-dark(#1c1c1e, #f2f2f5);
-  --se-muted: light-dark(#66666e, #9c9ca6);
-  --se-accent: light-dark(#1c1c1e, #f2f2f5);
-  --se-accent-hover: light-dark(#34343c, #dcdce2);
-  --se-accent-fg: light-dark(#ffffff, #141416);
-  --se-active: light-dark(#0a0a0a, #ffffff);
-  --se-danger: light-dark(#c32026, #ff6169);
-  --se-danger-fg: light-dark(#ffffff, #2b0509);
-  --se-hairline: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
-  --se-hairline-strong: light-dark(rgb(0 0 0 / 0.14), rgb(255 255 255 / 0.18));
-  --se-hover: light-dark(rgb(0 0 0 / 0.05), rgb(255 255 255 / 0.07));
-  --se-selected-bg: light-dark(rgb(0 0 0 / 0.075), rgb(255 255 255 / 0.11));
-  --se-track: light-dark(rgb(0 0 0 / 0.075), rgb(0 0 0 / 0.32));
-  --se-ruler-tick: light-dark(rgb(0 0 0 / 0.16), rgb(255 255 255 / 0.22));
-  --se-ruler-tick-major: light-dark(rgb(0 0 0 / 0.34), rgb(255 255 255 / 0.42));
-  --se-glass: light-dark(rgb(255 255 255 / 0.78), rgb(28 28 32 / 0.74));
-  --se-shadow: light-dark(rgb(0 0 0 / 0.06), rgb(0 0 0 / 0.5));
-  --se-shadow-strong: light-dark(rgb(0 0 0 / 0.12), rgb(0 0 0 / 0.6));
-  /* Dark surfaces read as lifted by a top highlight, not by a drop shadow. */
-  --se-top-highlight: light-dark(transparent, rgb(255 255 255 / 0.07));
-  --se-stage-max: 100%;
-  --se-shell-bg: light-dark(#e6e6ea, #08080a);
-  /* Spacing is a 4px ramp. Half-steps (6px) are allowed where an icon sits
-     against its own label; anything else picks a rung, so no more one-off
-     values like 0.15rem or 0.85rem that relate to nothing around them. */
-  --se-space-1: 0.25rem;
-  --se-space-2: 0.5rem;
-  --se-space-3: 0.75rem;
-  --se-space-4: 1rem;
-  /* Where content optically aligns with the stage edge. Everything that
-     stacks in the chrome — panel rows, sheet sections — resolves to this. */
-  --se-gutter: var(--se-space-4);
-  /* Distance from the viewport edge to anything floating over the photo. */
-  --se-hud-inset: var(--se-space-3);
+  /* Duration ladder. Not a Tailwind namespace, so it stays here for the rules
+     below; components use the matching duration-100/150/200/300 utilities. */
+  --duration-instant: 100ms; /* a tick answering a finger already moving */
+  --duration-fast: 150ms; /* colour and opacity on hover or press */
+  --duration-base: 200ms; /* a control changing state in place */
+  --duration-slow: 300ms; /* something that travels: thumbs, panels, sheets */
+  --duration-slower: 400ms;
+
+  /* Layout values that are read or overridden at runtime rather than themed. */
+  --stage-max: 100%;
 }
 
 /* An explicit choice wins over the OS; absent the attribute, the OS decides. */
@@ -83,31 +141,6 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-panel: var(--panel);
-  --color-panel-elevated: var(--panel-elevated);
-  --color-danger: var(--danger);
-  --font-sans: var(--font-ui);
 }
 
 * {
@@ -125,9 +158,11 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100%;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-ui);
+  background: var(--color-bg);
+  color: var(--color-fg);
+  font-family: var(--font-sans);
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
   -webkit-font-smoothing: antialiased;
   overscroll-behavior: none;
 }
@@ -165,7 +200,7 @@ button:disabled,
 }
 
 :focus-visible {
-  outline: 2px solid var(--ring);
+  outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
 
@@ -181,8 +216,8 @@ button:disabled,
 }
 
 .touch-target {
-  min-width: 44px;
-  min-height: 44px;
+  min-width: var(--spacing-touch);
+  min-height: var(--spacing-touch);
 }
 
 .scrollbar-none {
@@ -203,11 +238,21 @@ button:disabled,
    against its top edge. */
 .se-toolbar {
   border-color: transparent;
-  background: var(--se-chrome);
-  padding-block: max(var(--se-space-3), env(safe-area-inset-top))
-    var(--se-space-3);
-  padding-inline: max(var(--se-gutter), env(safe-area-inset-left))
-    max(var(--se-gutter), env(safe-area-inset-right));
+  background: var(--color-chrome);
+  padding-block: max(--spacing(3), env(safe-area-inset-top)) --spacing(3);
+  padding-inline: max(var(--spacing-gutter), env(safe-area-inset-left))
+    max(var(--spacing-gutter), env(safe-area-inset-right));
+}
+
+/* The import screen's frame. Editorial margin on three sides; the top is one
+   step tighter for the same reason .se-toolbar's is — the settings control's
+   44px box centres a 20px glyph, and that centring supplies the difference, so
+   equal numbers here would read as a roomier top than sides. */
+.se-page {
+  padding-block: max(var(--spacing-gutter), env(safe-area-inset-top))
+    max(var(--spacing-page), env(safe-area-inset-bottom));
+  padding-inline: max(var(--spacing-page), env(safe-area-inset-left))
+    max(var(--spacing-page), env(safe-area-inset-right));
 }
 
 /* A control with a background — the Save pill — aligns its *box* to the gutter.
@@ -215,30 +260,30 @@ button:disabled,
    it pulls back by its own padding to put its *label* on the gutter instead.
    The offset must match the button size's horizontal padding (`md` is px-3). */
 .se-edge-start {
-  margin-inline-start: -0.75rem;
+  margin-inline-start: --spacing(-3);
 }
 
 /* Cancels the gutter so a scroller can run to the true edge of the deck. */
 .se-bleed {
-  margin-inline: calc(var(--se-gutter) * -1);
+  margin-inline: calc(var(--spacing-gutter) * -1);
 }
 
 /* Same, but hands the gutter back as padding, so the first and last item still
    line up with the rows above while the scroll itself stays edge-to-edge. */
 .se-bleed-inset {
-  margin-inline: calc(var(--se-gutter) * -1);
-  padding-inline: var(--se-gutter);
+  margin-inline: calc(var(--spacing-gutter) * -1);
+  padding-inline: var(--spacing-gutter);
 }
 
 .se-control {
   background: transparent;
   transition:
-    color 150ms ease-out,
-    opacity 150ms ease-out;
+    color var(--duration-fast) ease-out,
+    opacity var(--duration-fast) ease-out;
 }
 
 .se-viewport {
-  background: var(--se-bg);
+  background: var(--color-bg);
   touch-action: none;
 }
 
@@ -251,11 +296,9 @@ button:disabled,
   /* Only the safe area: the panels inside carry the gutter themselves, so
      insetting here too would push their content past it. */
   padding-inline: env(safe-area-inset-left) env(safe-area-inset-right);
-  border-radius: 20px 20px 0 0;
-  background: var(--se-surface);
-  box-shadow:
-    0 -10px 30px var(--se-shadow),
-    inset 0 1px 0 var(--se-top-highlight);
+  border-radius: var(--radius-panel) var(--radius-panel) 0 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-deck);
 }
 
 /* Holds whichever panel is active. The height cap lives here, not on the deck,
@@ -274,7 +317,7 @@ button:disabled,
 }
 
 .se-panel-stack[data-ready] {
-  transition: height 320ms cubic-bezier(0.32, 0.72, 0, 1);
+  transition: height var(--duration-slow) var(--ease-emphasized);
 }
 
 /* Both panels share one rhythm, declared once, so switching modes cannot shift
@@ -283,13 +326,13 @@ button:disabled,
 .se-crop-panel {
   display: flex;
   flex-direction: column;
-  gap: var(--se-space-2);
-  padding-inline: var(--se-gutter);
+  gap: --spacing(2);
+  padding-inline: var(--spacing-gutter);
 }
 
 /* Entering panel settles in rather than appearing mid-animation. */
 .se-editor-panel:not([hidden]) {
-  animation: se-panel-in 280ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  animation: se-panel-in var(--duration-slow) var(--ease-emphasized) both;
 }
 
 @keyframes se-panel-in {
@@ -309,20 +352,22 @@ button:disabled,
   display: flex;
   flex-shrink: 0;
   justify-content: center;
-  padding-top: var(--se-space-2);
-  padding-bottom: max(var(--se-space-2), env(safe-area-inset-bottom));
+  padding-top: --spacing(2);
+  padding-bottom: max(--spacing(2), env(safe-area-inset-bottom));
 }
 
 /* Mode switcher — a segmented control: grey track, one raised thumb that
-   slides to the active tab. Self-contained, so centering reads as deliberate. */
+   slides to the active tab. Self-contained, so centering reads as deliberate.
+   The 2px inner gap is a hairline, not a spacing step: it separates the thumb
+   from the track it sits in rather than spacing two pieces of content. */
 .se-mode-tabs {
   position: relative;
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 4px;
-  border-radius: 999px;
-  background: var(--se-track);
+  padding: --spacing(1);
+  border-radius: var(--radius-pill);
+  background: var(--color-track);
 }
 
 .se-mode-thumb {
@@ -331,31 +376,29 @@ button:disabled,
   width: var(--active-tab-width);
   height: var(--active-tab-height);
   translate: var(--active-tab-left) var(--active-tab-top);
-  border-radius: 999px;
-  background: var(--se-raised);
-  box-shadow:
-    0 0 0 1px var(--se-hairline),
-    0 1px 2px var(--se-shadow-strong),
-    inset 0 1px 0 var(--se-top-highlight);
+  border-radius: var(--radius-pill);
+  background: var(--color-raised);
+  box-shadow: var(--shadow-thumb);
   transition:
-    translate 260ms cubic-bezier(0.32, 0.72, 0, 1),
-    width 260ms cubic-bezier(0.32, 0.72, 0, 1),
-    height 260ms cubic-bezier(0.32, 0.72, 0, 1);
+    translate var(--duration-slow) var(--ease-emphasized),
+    width var(--duration-slow) var(--ease-emphasized),
+    height var(--duration-slow) var(--ease-emphasized);
 }
 
 .se-mode-tab {
   z-index: 20;
-  min-height: 40px;
-  gap: 6px;
-  border-radius: 999px;
-  padding-inline: 16px;
-  font-size: 14px;
+  min-height: --spacing(10);
+  gap: --spacing(2);
+  border-radius: var(--radius-pill);
+  padding-inline: --spacing(4);
+  font-size: var(--text-label);
+  line-height: var(--text-label--line-height);
   /* Constant weight: a bolder active label would reflow the inactive one. */
   font-weight: 500;
 }
 
 .se-mode-tabs [data-active] {
-  color: var(--se-active);
+  color: var(--color-active);
 }
 
 /* Scroll affordance: mask the dials themselves so the fade always resolves to
@@ -375,7 +418,7 @@ button:disabled,
 /* Leading and trailing room equal to half the viewport minus half a chip, so
    the first and last dial can still sit dead centre when selected. */
 .se-chip-track {
-  padding-inline: calc(50% - 2.25rem);
+  padding-inline: calc(50% - --spacing(9));
 }
 
 .se-chip-scroller {
@@ -389,56 +432,56 @@ button:disabled,
     transparent 100%
   );
   transition:
-    --se-fade-start 200ms ease,
-    --se-fade-end 200ms ease;
+    --se-fade-start var(--duration-base) ease,
+    --se-fade-end var(--duration-base) ease;
 }
 
 .se-chip-scroller[data-overflow-start] {
-  --se-fade-start: 40px;
+  --se-fade-start: --spacing(10);
 }
 
 .se-chip-scroller[data-overflow-end] {
-  --se-fade-end: 40px;
+  --se-fade-end: --spacing(10);
 }
 
 .se-dial {
   position: relative;
   display: grid;
-  width: 52px;
-  height: 52px;
+  width: --spacing(13);
+  height: --spacing(13);
   place-items: center;
-  border-radius: 50%;
-  border: 2px solid var(--se-hairline);
+  border-radius: var(--radius-pill);
+  border: 2px solid var(--color-hairline);
   background: transparent;
   transition:
-    background-color 180ms ease,
-    border-color 180ms ease;
+    background-color var(--duration-base) ease,
+    border-color var(--duration-base) ease;
 }
 
 .se-dial[data-active] {
   border-color: transparent;
-  background: var(--se-selected-bg);
+  background: var(--color-selected);
 }
 
 @media (hover: hover) {
   .se-chip-scroller button:not(:disabled):hover .se-dial:not([data-active]) {
-    border-color: var(--se-hairline-strong);
-    background: var(--se-hover);
+    border-color: var(--color-hairline-strong);
+    background: var(--color-hover);
   }
 }
 
 .se-dial-ring {
   position: absolute;
   inset: -2px;
-  width: 52px;
-  height: 52px;
+  width: --spacing(13);
+  height: --spacing(13);
   transform: rotate(-90deg);
 }
 
 /* The active dial swaps its icon for the live value; tabular figures stop the
    number jittering as it counts. */
 .se-dial-value {
-  font-size: 14px;
+  font-size: var(--text-label);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
@@ -451,14 +494,14 @@ button:disabled,
   display: grid;
   place-items: center;
   color: inherit;
-  transition: color 180ms ease;
+  transition: color var(--duration-base) ease;
 }
 
 /* Tape-measure slider — the tape scrubs under a fixed centre indicator, and
    ticks swell toward the current value the way the iOS Photos tape does. */
 .se-ruler {
   position: relative;
-  height: 52px;
+  height: --spacing(13);
   overflow: hidden;
   touch-action: none;
   cursor: ew-resize;
@@ -498,12 +541,12 @@ button:disabled,
 
 .se-ruler-tick {
   position: absolute;
-  bottom: 12px;
+  bottom: --spacing(3);
   width: 2px;
-  height: 28px;
+  height: --spacing(7);
   /* Fully rounded, so every tick reads as a capsule rather than a bar. */
-  border-radius: 999px;
-  background: var(--se-fg);
+  border-radius: var(--radius-pill);
+  background: var(--color-fg);
   opacity: var(--tick-opacity, 0.26);
   /* Scale from the baseline so every tick shares a bottom edge. */
   transform: translateX(-50%) scaleY(var(--tick-scale, 0.4));
@@ -511,22 +554,22 @@ button:disabled,
   /* Settling back to flat is slower than the swell, so releasing reads as the
      tape relaxing rather than snapping. */
   transition:
-    transform 300ms cubic-bezier(0.22, 0.61, 0.36, 1),
-    opacity 300ms ease-out;
+    transform var(--duration-slow) var(--ease-emphasized),
+    opacity var(--duration-slow) ease-out;
 }
 
 .se-ruler[data-scrubbing] .se-ruler-tick {
-  transition-duration: 80ms;
+  transition-duration: var(--duration-instant);
 }
 
 /* Marks where zero sits on the tape, the way Photos dots the origin. */
 .se-ruler-origin {
   position: absolute;
-  bottom: 42px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--se-muted);
+  bottom: --spacing(10);
+  width: --spacing(1);
+  height: --spacing(1);
+  border-radius: var(--radius-pill);
+  background: var(--color-muted);
   opacity: 0.75;
   transform: translateX(-50%);
 }
@@ -536,11 +579,11 @@ button:disabled,
 .se-ruler-center {
   position: absolute;
   left: 50%;
-  bottom: 8px;
-  width: 4px;
-  height: 34px;
-  border-radius: 999px;
-  background: var(--se-fg);
+  bottom: --spacing(2);
+  width: --spacing(1);
+  height: --spacing(9);
+  border-radius: var(--radius-pill);
+  background: var(--color-fg);
   transform: translateX(-50%);
   pointer-events: none;
 }
@@ -552,34 +595,35 @@ button:disabled,
   align-items: stretch;
   width: 100%;
   min-height: 100dvh;
-  background: var(--se-bg);
+  background: var(--color-bg);
 }
 
 .se-stage {
   position: relative;
   display: flex;
   width: 100%;
-  max-width: var(--se-stage-max);
+  max-width: var(--stage-max);
   min-height: 100dvh;
   height: 100dvh;
   flex-direction: column;
   overflow: hidden;
-  background: var(--se-bg);
+  background: var(--color-bg);
 }
 
 .se-slider-well {
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
-  background: var(--se-hover);
-  padding: 2px var(--se-space-3);
+  border-radius: var(--radius-control);
+  background: var(--color-hover);
+  /* 2px is a hairline inset around a 22px thumb, not a spacing step. */
+  padding: 2px --spacing(3);
 }
 
 /* Inset horizontally to the well's own padding so tick 0% lands on the track's
    start; vertically it is centred, so equal insets are all this needs. */
 .se-slider-ticks {
   position: absolute;
-  inset: 0 var(--se-space-3);
+  inset: 0 --spacing(3);
   z-index: 0;
   pointer-events: none;
   -webkit-mask-image: linear-gradient(
@@ -602,84 +646,84 @@ button:disabled,
   position: absolute;
   top: 50%;
   width: 2px;
-  height: 8px;
-  background: var(--se-ruler-tick);
+  height: --spacing(2);
+  background: var(--color-tick);
   transform: translate(-50%, -50%);
 }
 
 .se-slider-tick-major {
-  height: 12px;
-  background: var(--se-ruler-tick-major);
+  height: --spacing(3);
+  background: var(--color-tick-strong);
 }
 
 .se-glass {
-  background: var(--se-glass);
-  border: 1px solid var(--se-hairline);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background: var(--color-glass);
+  border: 1px solid var(--color-hairline);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
 }
 
 /* Every readout floating over the photo — crop size, compare, zoom — is the
    same pill, so they stay interchangeable instead of drifting apart. */
 .se-hud-pill {
   position: absolute;
-  border-radius: 999px;
-  padding: var(--se-space-1) var(--se-space-3);
+  border-radius: var(--radius-pill);
+  padding: --spacing(1) --spacing(3);
   background: rgb(0 0 0 / 0.65);
   color: #fff;
   white-space: nowrap;
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(var(--blur-glass));
+  -webkit-backdrop-filter: blur(var(--blur-glass));
 }
 
 @media (min-width: 768px) {
   :root {
-    --se-stage-max: 480px;
+    --stage-max: 480px;
   }
 
   body {
-    background: var(--se-shell-bg);
+    background: var(--color-shell);
   }
 
   .se-app-shell {
     align-items: center;
-    padding: 1.25rem 1rem;
-    background: var(--se-shell-bg);
+    padding: --spacing(5) --spacing(4);
+    background: var(--color-shell);
   }
 
   .se-stage {
-    min-height: min(100dvh - 2.5rem, 900px);
-    height: min(100dvh - 2.5rem, 900px);
-    border: 1px solid var(--se-hairline);
-    border-radius: 18px;
+    min-height: min(100dvh - --spacing(10), 900px);
+    height: min(100dvh - --spacing(10), 900px);
+    border: 1px solid var(--color-hairline);
+    border-radius: var(--radius-panel);
   }
 }
 
 @media (min-width: 1024px) {
   :root {
-    --se-stage-max: 520px;
+    --stage-max: 520px;
   }
 }
 
 @media (min-width: 1280px) {
   :root {
-    --se-stage-max: 560px;
+    --stage-max: 560px;
   }
 
   .se-app-shell {
-    padding: 1.5rem 1.25rem;
+    padding: --spacing(6) --spacing(5);
   }
 
   .se-stage {
-    min-height: min(100dvh - 3rem, 940px);
-    height: min(100dvh - 3rem, 940px);
+    min-height: min(100dvh - --spacing(12), 940px);
+    height: min(100dvh - --spacing(12), 940px);
   }
 }
 
 @media (orientation: landscape) and (max-height: 520px) {
   .se-app-shell {
     padding: 0;
-    background: var(--se-bg);
+    background: var(--color-bg);
   }
 
   .se-stage {
@@ -694,8 +738,8 @@ button:disabled,
     display: grid;
     min-height: 0;
     grid-template-columns: minmax(0, 1fr) 108px;
-    gap: var(--se-space-1);
-    padding: var(--se-space-1) var(--se-space-2) 0;
+    gap: --spacing(1);
+    padding: --spacing(1) --spacing(2) 0;
   }
 
   /* Height is the grid's job here, so drop the animated inline height. */
@@ -711,7 +755,7 @@ button:disabled,
   .se-mode-bar {
     order: 2;
     align-items: center;
-    padding: 0 0 max(var(--se-space-1), env(safe-area-inset-bottom));
+    padding: 0 0 max(--spacing(1), env(safe-area-inset-bottom));
   }
 
   /* The segmented control stacks into a rail, thumb sliding vertically. */
@@ -719,14 +763,14 @@ button:disabled,
     display: flex;
     width: 100%;
     flex-direction: column;
-    border-radius: 20px;
+    border-radius: var(--radius-panel);
   }
 
   .se-mode-tab {
     width: 100%;
-    min-height: 34px;
+    min-height: --spacing(9);
     justify-content: flex-start;
-    padding-inline: var(--se-space-3);
+    padding-inline: --spacing(3);
   }
 
   .se-editor-panel {
@@ -744,6 +788,6 @@ button:disabled,
     min-height: 0;
     justify-content: flex-start;
     gap: 2px;
-    --se-gutter: var(--se-space-2);
+    --spacing-gutter: --spacing(2);
   }
 }

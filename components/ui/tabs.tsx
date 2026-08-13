@@ -51,8 +51,8 @@ export function TabsTrigger({
     <BaseTabs.Tab
       className={cn(
         "relative z-20 inline-flex items-center justify-center gap-1 rounded-none border-0 bg-transparent font-medium outline-none select-none",
-        "text-[var(--se-muted)] data-active:text-[var(--se-active)]",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--se-accent)]",
+        "text-muted data-active:text-active",
+        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
         "transition-colors duration-150",
         className,
       )}
