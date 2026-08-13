@@ -6,6 +6,7 @@ import { Switch } from "@/components/ui/switch";
 import { RangeSlider } from "@/components/ui/slider";
 import { RulerSlider } from "@/components/ui/ruler-slider";
 import { Spinner } from "@/components/ui/spinner";
+import { THEME_EVENT } from "@/app/lib/theme";
 import { cn } from "@/lib/utils";
 
 /**
@@ -67,10 +68,10 @@ function subscribeToTheme(onStoreChange: () => void): () => void {
   };
   const query = window.matchMedia("(prefers-color-scheme: dark)");
   query.addEventListener("change", invalidate);
-  window.addEventListener("simplyedit:themechange", invalidate);
+  window.addEventListener(THEME_EVENT, invalidate);
   return () => {
     query.removeEventListener("change", invalidate);
-    window.removeEventListener("simplyedit:themechange", invalidate);
+    window.removeEventListener(THEME_EVENT, invalidate);
   };
 }
 
@@ -202,7 +203,7 @@ export function DesignReference() {
       <div className="mx-auto flex max-w-[52rem] flex-col gap-8 px-page py-12">
         <header className="flex flex-col gap-2">
           <h1 className="text-display font-medium tracking-snug">
-            SimplyEdit design system
+            Raspy design system
           </h1>
           <p className="max-w-[62ch] text-body text-muted">
             Every value below is read out of the running stylesheet, not copied

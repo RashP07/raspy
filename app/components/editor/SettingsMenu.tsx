@@ -22,13 +22,12 @@ import {
   isThemePreference,
   readStoredTheme,
   storeTheme,
+  THEME_EVENT,
   syncThemeColorMeta,
   THEME_ORDER,
   THEME_STORAGE_KEY,
   type ThemePreference,
 } from "@/app/lib/theme";
-
-const THEME_EVENT = "raspy:themechange";
 
 const THEME_LABELS: Record<ThemePreference, string> = {
   system: "Auto",

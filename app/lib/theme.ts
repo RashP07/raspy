@@ -2,6 +2,11 @@ export type ThemePreference = "system" | "light" | "dark";
 
 export const THEME_STORAGE_KEY = "raspy:theme";
 
+/** Fired on this window whenever the preference changes. Lives here rather
+ *  than in the menu that dispatches it, so a second listener cannot drift on
+ *  to a stale event name. Mirrors SOUND_EVENT in app/lib/sound.ts. */
+export const THEME_EVENT = "raspy:themechange";
+
 /** Cycle order for the toolbar toggle. */
 export const THEME_ORDER: ThemePreference[] = ["system", "light", "dark"];
 
