@@ -16,9 +16,9 @@ export interface ShowToastInput {
 
 const statusAccent: Record<ToastStatus, string> = {
   neutral: "border-hairline",
-  info: "border-sky-500/40",
-  success: "border-emerald-500/40",
-  error: "border-red-500/45",
+  info: "border-info/40",
+  success: "border-success/40",
+  error: "border-danger/45",
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {

@@ -87,7 +87,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
       </head>
-      <body className="relative bg-background text-foreground antialiased">
+      <body className="relative bg-bg text-fg antialiased">
         <div className="root">{children}</div>
         <script
           dangerouslySetInnerHTML={{

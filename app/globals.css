@@ -14,7 +14,7 @@
    var() on the same values rather than restating them.
    --------------------------------------------------------------------------- */
 
-@theme {
+@theme static {
   /* Colour — one palette. Every value is light-dark(), so `color-scheme`
      below picks the branch and there is no second set to keep in sync.
 
@@ -42,6 +42,17 @@
 
   --color-danger: light-dark(#c32026, #ff6169);
   --color-danger-fg: light-dark(#ffffff, #2b0509);
+  /* Status, and only the toast uses them — danger above doubles as its error.
+     Before these existed the toast reached straight for Tailwind's stock
+     sky-500 and emerald-500, which is drift the design page made visible. */
+  --color-info: light-dark(#0284c7, #0ea5e9);
+  --color-success: light-dark(#059669, #10b981);
+
+  /* Constant in both themes on purpose: a scrim dims the app behind a sheet
+     and an overlay sits on top of a photo, so neither is reacting to the
+     interface's own lightness. */
+  --color-scrim: rgb(0 0 0 / 0.6);
+  --color-overlay: rgb(0 0 0 / 0.65);
 
   /* Separators and states, all translucent so they compose over any surface. */
   --color-hairline: light-dark(rgb(0 0 0 / 0.08), rgb(255 255 255 / 0.1));
@@ -669,7 +680,7 @@ button:disabled,
   position: absolute;
   border-radius: var(--radius-pill);
   padding: --spacing(1) --spacing(3);
-  background: rgb(0 0 0 / 0.65);
+  background: var(--color-overlay);
   color: #fff;
   white-space: nowrap;
   backdrop-filter: blur(var(--blur-glass));
