@@ -11,6 +11,13 @@ import {
   ThemeSystemIcon,
 } from "@/components/ui/icons";
 import { playSelect, unlockTickAudio } from "@/app/lib/audio/tick";
+import { GA_ENABLED } from "@/app/lib/analytics";
+import {
+  CONSENT_EVENT,
+  CONSENT_STORAGE_KEY,
+  effectiveConsent,
+  setConsent,
+} from "@/app/lib/consent";
 import {
   readStoredSound,
   setSound,
@@ -65,6 +72,14 @@ export function SettingsMenu() {
     readStoredSound,
     () => true,
   );
+  // Server snapshot is "denied": the stricter state, so a hydration mismatch
+  // can never briefly render analytics as on when it is off.
+  const analyticsOn =
+    useSyncExternalStore(
+      subscribeTo(CONSENT_EVENT),
+      effectiveConsent,
+      () => "denied" as const,
+    ) === "granted";
 
   useEffect(() => {
     if (theme !== "system") return;
@@ -84,6 +99,9 @@ export function SettingsMenu() {
       }
       if (event.key === null || event.key === SOUND_STORAGE_KEY) {
         window.dispatchEvent(new Event(SOUND_EVENT));
+      }
+      if (event.key === null || event.key === CONSENT_STORAGE_KEY) {
+        window.dispatchEvent(new Event(CONSENT_EVENT));
       }
     };
     window.addEventListener("storage", onStorage);
@@ -168,6 +186,27 @@ export function SettingsMenu() {
             }}
           />
         </section>
+
+        {GA_ENABLED ? (
+          <section className="flex items-center justify-between gap-4">
+            <label
+              htmlFor="setting-analytics"
+              className="flex flex-col text-body font-medium"
+            >
+              Analytics
+              <span className="text-caption font-normal text-muted">
+                Anonymous page counts. Never your photos.
+              </span>
+            </label>
+            <Switch
+              id="setting-analytics"
+              checked={analyticsOn}
+              onCheckedChange={(next) =>
+                setConsent(next ? "granted" : "denied")
+              }
+            />
+          </section>
+        ) : null}
       </div>
     </MenuPopover>
   );

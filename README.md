@@ -22,8 +22,12 @@ The phrase describes how the app is built, not just how it is marketed:
 
 - **No upload path exists.** Decoding, editing, and encoding all happen in the
   page. There is no endpoint to send a photo to.
-- **No account, no telemetry, no server-side storage.** No database or object
-  store is provisioned; the deployment serves static files only.
+- **No account and no server-side storage.** No database or object store is
+  provisioned; the deployment serves static files only. The one third party is
+  Google Analytics, which counts page visits with Google Signals and ad
+  personalisation disabled, and is gated behind consent in the EU. It never
+  sees a photo, an edit, or an export — nothing about your image is passed to
+  it. See [Analytics and consent](#analytics-and-consent).
 - **Exports carry no metadata.** The file is re-encoded from raw canvas pixels,
   so EXIF and GPS are dropped — a shared photo does not carry the location where
   it was taken.
@@ -238,6 +242,45 @@ cross-origin, and image-accepting requests entirely. **Photo data cannot enter
 the cache**, which is a correctness requirement for the privacy claim, not an
 optimisation.
 
+## Analytics and consent
+
+Page-view counting via Google Analytics 4, on **Consent Mode v2**, loaded only
+in production builds. No photo, edit, crop, or export detail is ever passed to
+`gtag` — the app measures visits, not use.
+
+The gating rests on two independent mechanisms, which is what lets a static app
+with no server be correct without an IP lookup:
+
+1. **`gtag('consent','default',…)` with a `region` list**, covering the EU, EEA,
+   UK, and Switzerland. Google resolves this by IP on their side, so an EU
+   visitor gets `analytics_storage: denied` regardless of what the client
+   concludes. This is the legal floor, and it holds even if the banner never
+   renders.
+2. **A timezone guess** (`isLikelyEuVisitor`) decides only whether to *show* the
+   banner. It is deliberately over-inclusive — every `Europe/` zone counts, plus
+   the Atlantic and Cypriot zones belonging to listed countries. Guessing wrong
+   shows a banner to someone who did not need one, or withholds one from someone
+   whose storage is already denied by (1). It cannot fail the other way.
+
+Ad storage, ad user data, and ad personalisation are denied unconditionally, in
+every region. `ads_data_redaction` and `url_passthrough` are set.
+
+Two details that are easy to get wrong:
+
+- **The Google tag is injected from the inline script, not rendered as
+  `<script async src>`.** React 19 hoists async script elements into `<head>`,
+  which would place the tag *above* the inline consent defaults and let it win
+  the race on a warm cache. Creating the element after the defaults are queued
+  makes the ordering unconditional rather than merely likely.
+- **Withdrawal expires the cookies.** Consent Mode stops GA writing new ones but
+  does not retract ones already set, so revoking walks every parent domain
+  suffix and expires `_ga*`, `_gid`, and `_gat`.
+
+Consent is withdrawable from Settings → Analytics, one toggle, the same single
+interaction that granted it. The banner is a bar rather than a modal: the editor
+stays usable behind it, Accept and Decline are the same size and one click each,
+and no answer is required to use the app.
+
 ## Accessibility
 
 Built in from the start rather than retrofitted:
@@ -263,18 +306,18 @@ Reduce Motion asks for less movement, not less sound.
 
 ## Testing
 
-65 Vitest tests across two projects — a `node` project for pure logic and a
+90 Vitest tests across two projects — a `node` project for pure logic and a
 `jsdom` one for components, so the logic tests keep running without a DOM they
 never needed.
 
-**Logic (31):** reducer history semantics including gesture coalescing, the
+**Logic (49):** reducer history semantics including gesture coalescing, the
 undo/redo boundaries and the 50-entry cap; the display-scale heuristics, 9 cases
 each with stubbed globals since the module memoises; crop maths; geometry
 including matrix invertibility and export-dimension clamping; and IndexedDB
 round-trips against `fake-indexeddb`, covering the schema-version rejection and
 the rule that the source blob is stored rather than a decoded bitmap.
 
-**Components and integration (34):** the autosave debounce — that a burst of
+**Components and integration (41):** the autosave debounce — that a burst of
 slider edits collapses to a single write, and that a failed write raises a
 warning instead of throwing; draft restore staying opt-in; import error, busy,
 and drag-affordance states, including the enter/leave pairing that used to make

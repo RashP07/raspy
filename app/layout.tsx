@@ -1,5 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Geist } from "next/font/google";
+import { ConsentBanner } from "./components/ConsentBanner";
+import { GA_ENABLED, GA_INIT_SCRIPT } from "./lib/analytics";
+import { CONSENT_INIT_SCRIPT } from "./lib/consent";
 import { THEME_COLORS, THEME_INIT_SCRIPT } from "./lib/theme";
 import "./globals.css";
 
@@ -89,6 +92,16 @@ export default function RootLayout({
       </head>
       <body className="relative bg-bg text-fg antialiased">
         <div className="root">{children}</div>
+        {GA_ENABLED && <ConsentBanner />}
+        {/* Last, so measurement never delays first paint or the editor. Order
+            within the block is load-bearing: the consent defaults must be on
+            dataLayer before GA_INIT_SCRIPT injects the Google tag. */}
+        {GA_ENABLED && (
+          <>
+            <script dangerouslySetInnerHTML={{ __html: CONSENT_INIT_SCRIPT }} />
+            <script dangerouslySetInnerHTML={{ __html: GA_INIT_SCRIPT }} />
+          </>
+        )}
         <script
           dangerouslySetInnerHTML={{
             __html: `
