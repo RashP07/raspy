@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
 import { MenuPopover } from "@/components/ui/popover";
@@ -207,6 +208,15 @@ export function SettingsMenu() {
             />
           </section>
         ) : null}
+
+        {/* Outside the label above: a link nested in a `for` target would
+            toggle the switch on the way to the page. */}
+        <Link
+          href="/privacy"
+          className="text-caption text-muted underline underline-offset-4 hover:text-fg"
+        >
+          Privacy
+        </Link>
       </div>
     </MenuPopover>
   );

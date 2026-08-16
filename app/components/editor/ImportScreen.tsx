@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
@@ -159,6 +160,14 @@ export function ImportScreen({
               Last edit restored from this device
             </p>
           ) : null}
+
+          {/* The claim in the headline should be checkable from the screen
+              that makes it, not only from inside Settings. */}
+          <p className="text-center text-caption text-muted">
+            <Link href="/privacy" className="underline underline-offset-4 hover:text-fg">
+              Privacy
+            </Link>
+          </p>
         </div>
       </div>
 

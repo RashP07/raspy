@@ -265,6 +265,14 @@ with no server be correct without an IP lookup:
 Ad storage, ad user data, and ad personalisation are denied unconditionally, in
 every region. `ads_data_redaction` and `url_passthrough` are set.
 
+The policy at [`/privacy`](https://raspy.rashmitaparmanik.com/privacy) names the
+controller, the contact, the two cookies, the 14-month retention, the legal
+bases, and the transfer basis — and carries the withdrawal toggle itself, so
+nobody has to read the page and then go hunting through Settings to act on it.
+It is linked from the banner, from Settings, and from the import screen. Its
+tests read the measurement ID from `analytics.ts`, so the page cannot drift from
+the tag it describes.
+
 Two details that are easy to get wrong:
 
 - **The Google tag is injected from the inline script, not rendered as
@@ -276,8 +284,8 @@ Two details that are easy to get wrong:
   does not retract ones already set, so revoking walks every parent domain
   suffix and expires `_ga*`, `_gid`, and `_gat`.
 
-Consent is withdrawable from Settings → Analytics, one toggle, the same single
-interaction that granted it. The banner is a bar rather than a modal: the editor
+Consent is withdrawable from Settings → Analytics or from `/privacy`, one
+toggle either way — the same single interaction that granted it. The banner is a bar rather than a modal: the editor
 stays usable behind it, Accept and Decline are the same size and one click each,
 and no answer is required to use the app.
 
@@ -306,7 +314,7 @@ Reduce Motion asks for less movement, not less sound.
 
 ## Testing
 
-90 Vitest tests across two projects — a `node` project for pure logic and a
+98 Vitest tests across two projects — a `node` project for pure logic and a
 `jsdom` one for components, so the logic tests keep running without a DOM they
 never needed.
 
@@ -317,7 +325,7 @@ including matrix invertibility and export-dimension clamping; and IndexedDB
 round-trips against `fake-indexeddb`, covering the schema-version rejection and
 the rule that the source blob is stored rather than a decoded bitmap.
 
-**Components and integration (41):** the autosave debounce — that a burst of
+**Components and integration (49):** the autosave debounce — that a burst of
 slider edits collapses to a single write, and that a failed write raises a
 warning instead of throwing; draft restore staying opt-in; import error, busy,
 and drag-affordance states, including the enter/leave pairing that used to make
@@ -390,7 +398,8 @@ app/lib/image/      decode + HEIC worker bridge, mat3 geometry, crop maths
 app/lib/editor/     reducer, context, types, defaults
 app/lib/storage/    IndexedDB draft persistence
 app/workers/        libheif WASM decode worker, OffscreenCanvas export worker
-app/components/     editor UI (viewport, panels, sheets, toolbar)
+app/components/     editor UI (viewport, panels, sheets, toolbar), consent banner
+app/privacy/        privacy policy, with the withdrawal control on the page
 components/ui/      primitives — ruler slider, sheet, toast, popover, switch
 public/sw.js        app-shell service worker
 ```

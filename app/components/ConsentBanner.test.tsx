@@ -101,3 +101,14 @@ declare global {
     dataLayer?: unknown[];
   }
 }
+
+describe("banner discoverability", () => {
+  it("links to the policy, which is where consent has to be explained", async () => {
+    restoreTimeZone = setTimeZone("Europe/Berlin");
+    render(<ConsentBanner />);
+    expect(screen.getByRole("link", { name: "Privacy" })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
+  });
+});

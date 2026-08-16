@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -72,7 +73,13 @@ export function ConsentBanner() {
           <p id="consent-body" className="text-caption text-muted">
             We count page visits with Google Analytics to see whether Raspy is
             worth continuing. Your photos are never part of it — they never
-            leave this device either way.
+            leave this device either way.{" "}
+            <Link
+              href="/privacy"
+              className="text-fg underline underline-offset-2"
+            >
+              Privacy
+            </Link>
           </p>
         </div>
 
