@@ -85,12 +85,13 @@ vec3 applyHighlightsShadows(vec3 c, float highlights, float shadows) {
   float p = tonePos(luma(c));
   float h = highlights / 100.0;
   float s = shadows / 100.0;
-  // Apple Photos convention: positive highlights RECOVERS (darkens) the
-  // brights; positive shadows OPENS them. Lightroom inverts the highlight
-  // direction -- do not "fix" the sign here.
+  // Both sliders open their end of the range on the positive side and recover
+  // it on the negative one, which is the direction every editor people arrive
+  // from uses -- the earlier inverted highlight made the two halves of one
+  // control disagree with each other.
   float hMask = smoothstep(0.42, 1.0, p);
   float sMask = 1.0 - smoothstep(0.05, 0.58, p);
-  return c * exp2(-h * 1.8 * hMask + s * 2.0 * sMask);
+  return c * exp2(h * 1.8 * hMask + s * 2.0 * sMask);
 }
 
 vec3 applyContrast(vec3 c, float contrast) {
@@ -189,30 +190,52 @@ vec3 denoise(vec2 uv, float amount) {
   return mix(center, acc / wsum, a);
 }
 
+const vec2 DEFINITION_DIRS[8] = vec2[8](
+  vec2(1.0, 0.0), vec2(-1.0, 0.0), vec2(0.0, 1.0), vec2(0.0, -1.0),
+  vec2(0.7071, 0.7071), vec2(-0.7071, 0.7071),
+  vec2(0.7071, -0.7071), vec2(-0.7071, -0.7071)
+);
+
+/**
+ * Definition is local contrast, not sharpening, and the difference is entirely
+ * in the radius: this samples a ring roughly 0.6% of the frame across, where
+ * the sharpen pass works one texel out. The old two-texel version produced a
+ * hairline halo invisible at any normal viewing size -- the slider moved and
+ * nothing on screen did.
+ */
 vec3 definitionPass(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
   float a = amount / 100.0;
   if (a < 0.001) return base;
-  vec3 blurRaw = (
-    sampleLinear(uv + vec2(-2.0, 0.0) * u_texel) +
-    sampleLinear(uv + vec2(2.0, 0.0) * u_texel) +
-    sampleLinear(uv + vec2(0.0, -2.0) * u_texel) +
-    sampleLinear(uv + vec2(0.0, 2.0) * u_texel) +
-    sampleLinear(uv + vec2(-1.0, -1.0) * u_texel * 2.0) +
-    sampleLinear(uv + vec2(1.0, -1.0) * u_texel * 2.0) +
-    sampleLinear(uv + vec2(-1.0, 1.0) * u_texel * 2.0) +
-    sampleLinear(uv + vec2(1.0, 1.0) * u_texel * 2.0)
-  ) * 0.125;
-  // Map the unadjusted neighborhood into the adjusted image's scale so the
-  // difference is local detail, not the tonal delta. Luma-only: a scalar
-  // gain and a uniform scale leave the R:G:B ratio untouched, where the
-  // per-channel form tinted edges (a near-zero raw channel blew its gain up).
   float yBase = luma(base);
+  if (yBase < 1e-4) return base;
+
+  // Two rings rather than one: a single ring at this radius beats against
+  // smooth gradients and lays a faint ripple over skies.
+  vec2 outer = u_texel * 12.0;
+  vec2 inner = u_texel * 6.0;
+  float blurRaw = 0.0;
+  for (int i = 0; i < 8; i++) {
+    blurRaw += luma(sampleLinear(uv + DEFINITION_DIRS[i] * outer));
+    blurRaw += luma(sampleLinear(uv + DEFINITION_DIRS[i] * inner)) * 2.0;
+  }
+  blurRaw /= 24.0;
+
+  // Map the unadjusted neighbourhood into the adjusted image's scale so the
+  // difference is local detail, not the tonal delta. Luma-only: a scalar gain
+  // and a uniform scale leave the R:G:B ratio untouched, where the per-channel
+  // form tinted edges (a near-zero raw channel blew its gain up).
   float gain = yBase / max(luma(rawCenter), 1e-4);
-  float high = clamp(yBase - luma(blurRaw) * gain, -0.20, 0.20);
+  float p = tonePos(yBase);
+  // Perceptual units, because a fixed linear step is a landslide in the
+  // shadows and imperceptible in the highlights.
+  float local = clamp(p - tonePos(max(blurRaw * gain, 0.0)), -0.25, 0.25);
+  // Midtones carry the texture people mean by "definition"; pushing the ends
+  // of the range only crushes blacks and blows highlights.
+  float weight = 1.0 - pow(abs(p * 2.0 - 1.0), 2.0);
+  float lifted = pow(clamp(p + local * a * 1.6 * weight, 0.0, 1.0), 2.2);
   // Floor the result at a fraction of the original luma: a strong negative
-  // lobe on a near-black pixel would otherwise flip the sign and punch a hole.
-  float lifted = max(yBase + high * a * 2.6, yBase * 0.2);
-  return base * (lifted / max(yBase, 1e-4));
+  // lobe on a near-black pixel would otherwise punch a hole.
+  return base * (max(lifted, yBase * 0.2) / yBase);
 }
 
 vec3 sharpen(vec2 uv, vec3 base, vec3 rawCenter, float amount) {
