@@ -9,6 +9,8 @@
  * file that actually saves.
  */
 
+import type { ExportDimensions } from "@/app/lib/editor/types";
+
 /**
  * Bytes per output pixel we assume an export costs. The drawing buffer is 4,
  * and the JPEG path allocates a second canvas to flatten onto white before
@@ -33,7 +35,11 @@ interface DeviceMemoryNavigator extends Navigator {
   deviceMemory?: number;
 }
 
-function reportedMemoryGb(): number | null {
+/**
+ * GB of RAM the browser admits to. Chrome — including on Android, where the
+ * ceiling actually bites — reports this; Safari and Firefox do not.
+ */
+export function reportedMemoryGb(): number | null {
   const nav =
     typeof navigator !== "undefined"
       ? (navigator as DeviceMemoryNavigator)
@@ -57,6 +63,34 @@ export function exportMemoryCap(): number {
 /** The pixel budget behind {@link exportMemoryCap}, for messages and tests. */
 export function exportPixelBudget(): number {
   return Math.floor(exportMemoryCap() / BYTES_PER_PIXEL);
+}
+
+/**
+ * Why an export came out smaller than asked for, in one sentence.
+ *
+ * "This device can't render a larger image" was the old line, and it told
+ * someone nothing they could check or act on. Both ceilings here are concrete
+ * numbers, so both are worth saying out loud.
+ */
+export function describeExportCeiling(
+  dimensions: ExportDimensions,
+): string | null {
+  if (dimensions.limitedBy === "dimension") {
+    return `Your graphics hardware won't render an image wider than ${dimensions.maxDimension.toLocaleString()} px on the long edge.`;
+  }
+  if (dimensions.limitedBy === "memory") {
+    const budget = formatMegapixels(dimensions.memoryCap / BYTES_PER_PIXEL);
+    const gb = reportedMemoryGb();
+    return gb === null
+      ? `Saves are budgeted ${budget} megapixels — beyond that, browsers start failing to encode.`
+      : `This device reports ${gb} GB of memory, so saves are budgeted ${budget} megapixels.`;
+  }
+  return null;
+}
+
+function formatMegapixels(pixels: number): string {
+  const mp = pixels / 1_000_000;
+  return mp >= 10 ? String(Math.round(mp)) : mp.toFixed(1);
 }
 
 /**

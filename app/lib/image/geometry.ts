@@ -284,6 +284,11 @@ export function requestedExportDimensions(
   };
 }
 
+/**
+ * Applies the two ceilings an export has to respect, and records which one
+ * bound — the editor names the reason rather than telling someone their device
+ * "can't", which is true of nothing they can act on.
+ */
 export function constrainExportDimensions(
   requested: { width: number; height: number },
   maxDimension: number,
@@ -291,21 +296,29 @@ export function constrainExportDimensions(
 ): ExportDimensions {
   let width = requested.width;
   let height = requested.height;
+  let limitedBy: ExportDimensions["limitedBy"] = "none";
+
   const longEdge = Math.max(width, height);
   if (longEdge > maxDimension) {
     const scale = maxDimension / longEdge;
     width = Math.max(1, Math.round(width * scale));
     height = Math.max(1, Math.round(height * scale));
+    limitedBy = "dimension";
   }
   const estimatedBytes = width * height * 8;
   if (estimatedBytes > memoryCap) {
     const scale = Math.sqrt(memoryCap / estimatedBytes);
     width = Math.max(1, Math.floor(width * scale));
     height = Math.max(1, Math.floor(height * scale));
+    // Memory bound last and therefore tighter: it is the ceiling to explain.
+    limitedBy = "memory";
   }
   return {
     requested,
     actual: { width, height },
     reduced: width !== requested.width || height !== requested.height,
+    limitedBy,
+    maxDimension,
+    memoryCap,
   };
 }

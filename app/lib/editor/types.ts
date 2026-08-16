@@ -73,6 +73,12 @@ export interface ExportDimensions {
   requested: { width: number; height: number };
   actual: { width: number; height: number };
   reduced: boolean;
+  /** Which ceiling bound the output, so the editor can explain the number. */
+  limitedBy: "none" | "dimension" | "memory";
+  /** Long-edge ceiling applied, in pixels (the GPU's texture limit, capped). */
+  maxDimension: number;
+  /** Peak byte budget applied, at 8 bytes per output pixel. */
+  memoryCap: number;
 }
 
 /**

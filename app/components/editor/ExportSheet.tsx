@@ -22,6 +22,10 @@ import {
   constrainExportDimensions,
   requestedExportDimensions,
 } from "@/app/lib/image/geometry";
+import {
+  describeExportCeiling,
+  exportMemoryCap,
+} from "@/app/lib/render/exportLimits";
 
 export interface ExportSheetProps {
   open: boolean;
@@ -151,9 +155,12 @@ export function ExportSheet({
     const options: ExportOptions = { format, quality, size };
     return (
       getExportDimensions?.(options) ??
+      // Renderer not up yet: same ceilings it would apply, minus the GPU's
+      // own texture limit, so the number here does not jump once it is.
       constrainExportDimensions(
         requestedExportDimensions(sourceWidth, sourceHeight, crop, size),
         8192,
+        exportMemoryCap(),
       )
     );
   }, [
@@ -233,8 +240,8 @@ export function ExportSheet({
           {dimensions.reduced ? (
             <p className={`text-label text-pretty ${MUTED}`}>
               Reduced from {dimensions.requested.width} ×{" "}
-              {dimensions.requested.height} px — this device can&apos;t render a
-              larger image.
+              {dimensions.requested.height} px.{" "}
+              {describeExportCeiling(dimensions)}
             </p>
           ) : null}
         </section>

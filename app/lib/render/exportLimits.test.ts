@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  describeExportCeiling,
   exportAttemptLadder,
   exportMemoryCap,
   exportPixelBudget,
   MIN_EXPORT_LONG_EDGE,
 } from "./exportLimits";
+import { constrainExportDimensions } from "@/app/lib/image/geometry";
 
 function setDeviceMemory(value: number | undefined) {
   Object.defineProperty(navigator, "deviceMemory", {
@@ -33,6 +35,54 @@ describe("exportMemoryCap", () => {
   it("never exceeds the ceiling on a large machine", () => {
     setDeviceMemory(8);
     expect(exportMemoryCap()).toBe(256 * 1024 * 1024);
+  });
+});
+
+describe("describeExportCeiling", () => {
+  it("says nothing when nothing was reduced", () => {
+    const dimensions = constrainExportDimensions(
+      { width: 2000, height: 1500 },
+      8192,
+    );
+    expect(dimensions.limitedBy).toBe("none");
+    expect(describeExportCeiling(dimensions)).toBeNull();
+  });
+
+  it("names the hardware limit when the long edge bound", () => {
+    // Big, but only 27 MP — under the 32 MP desktop budget, so the long edge
+    // is what bites.
+    const dimensions = constrainExportDimensions(
+      { width: 18000, height: 1500 },
+      8192,
+    );
+    expect(dimensions.limitedBy).toBe("dimension");
+    expect(describeExportCeiling(dimensions)).toContain("8,192 px");
+  });
+
+  it("quotes the reported memory when the budget bound", () => {
+    setDeviceMemory(4);
+    const dimensions = constrainExportDimensions(
+      { width: 9000, height: 6000 },
+      8192,
+      exportMemoryCap(),
+    );
+    expect(dimensions.limitedBy).toBe("memory");
+    const copy = describeExportCeiling(dimensions);
+    expect(copy).toContain("4 GB");
+    expect(copy).toContain("25 megapixels");
+  });
+
+  it("explains the budget without naming memory the device never reported", () => {
+    setDeviceMemory(undefined);
+    const dimensions = constrainExportDimensions(
+      { width: 9000, height: 6000 },
+      8192,
+      exportMemoryCap(),
+    );
+    expect(dimensions.limitedBy).toBe("memory");
+    const copy = describeExportCeiling(dimensions);
+    expect(copy).toContain("34 megapixels");
+    expect(copy).not.toContain("GB");
   });
 });
 
