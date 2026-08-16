@@ -23,13 +23,14 @@ import {
   ADJUSTMENT_META,
   type ExportDimensions,
   type ExportOptions,
+  type SaveDelivery,
   type ViewTransform,
 } from "@/app/lib/editor/types";
 
 export interface EditorShellProps {
   canvasRef: (node: HTMLCanvasElement | null) => void;
   canvasKey: number;
-  onExport: (options: ExportOptions) => void;
+  onExport: (options: ExportOptions, delivery: SaveDelivery) => void;
   exportProgress: number | null;
   exportCancelling?: boolean;
   onCancelExport?: () => void;

@@ -69,6 +69,12 @@ export interface ExportOptions {
   size: "original" | "75-percent" | "50-percent";
 }
 
+/**
+ * Where a finished export goes. Kept out of ExportOptions because it changes
+ * nothing about the pixels — the renderer has no business knowing it.
+ */
+export type SaveDelivery = "share" | "download";
+
 export interface ExportDimensions {
   requested: { width: number; height: number };
   actual: { width: number; height: number };

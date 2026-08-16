@@ -5,7 +5,11 @@ import { ToastProvider, useToast } from "@/components/ui/toast";
 import { playConfirm, unlockTickAudio } from "@/app/lib/audio/tick";
 import { IconProvider } from "@/components/ui/icons";
 import { EditorProvider, useEditor } from "@/app/lib/editor/context";
-import type { ExportOptions, ExportResult } from "@/app/lib/editor/types";
+import type {
+  ExportOptions,
+  ExportResult,
+  SaveDelivery,
+} from "@/app/lib/editor/types";
 import { ImportError } from "@/app/lib/image/decode";
 import { describeExportFailure } from "@/app/lib/render/exportError";
 import { EditorShell } from "./EditorShell";
@@ -14,28 +18,44 @@ import { usePhotoExport, useRenderer } from "./useRenderer";
 
 type SaveOutcome = "shared" | "downloaded" | "cancelled";
 
-async function shareOrDownload(
+/**
+ * Hands the finished file over the way the person asked for.
+ *
+ * Sharing is only attempted when it was chosen: a device with a share sheet
+ * used to get one whether or not it wanted one, which on Android left no way
+ * to put the file in Downloads. A share that fails for any reason other than
+ * being dismissed still falls through to the download — the file exists, and
+ * losing it to a platform error helps nobody.
+ */
+async function deliverFile(
   blob: Blob,
   filename: string,
   mimeType: string,
+  delivery: SaveDelivery,
 ): Promise<SaveOutcome> {
-  const file = new File([blob], filename, { type: mimeType });
-  const canShare =
-    typeof navigator !== "undefined" &&
-    typeof navigator.share === "function" &&
-    (!navigator.canShare || navigator.canShare({ files: [file] }));
+  if (delivery === "share") {
+    const file = new File([blob], filename, { type: mimeType });
+    const canShare =
+      typeof navigator !== "undefined" &&
+      typeof navigator.share === "function" &&
+      (!navigator.canShare || navigator.canShare({ files: [file] }));
 
-  if (canShare) {
-    try {
-      await navigator.share({ files: [file], title: filename });
-      return "shared";
-    } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
-        return "cancelled";
+    if (canShare) {
+      try {
+        await navigator.share({ files: [file], title: filename });
+        return "shared";
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return "cancelled";
+        }
       }
     }
   }
 
+  return download(blob, filename);
+}
+
+function download(blob: Blob, filename: string): SaveOutcome {
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -43,7 +63,9 @@ async function shareOrDownload(
   document.body.appendChild(anchor);
   anchor.click();
   anchor.remove();
-  URL.revokeObjectURL(url);
+  // Revoking in the same tick races the download on some Android builds, which
+  // read the blob after the click returns and end up with a 0-byte file.
+  setTimeout(() => URL.revokeObjectURL(url), 60_000);
   return "downloaded";
 }
 
@@ -169,7 +191,7 @@ function EditorAppInner() {
   );
 
   const handleExport = useCallback(
-    async (options: ExportOptions) => {
+    async (options: ExportOptions, delivery: SaveDelivery) => {
       if (!state.project) return;
       // Still inside the click that started the export: the only moment a
       // suspended context is allowed to resume, and the confirmation lands
@@ -189,10 +211,11 @@ function EditorAppInner() {
         // Named from what was produced, not what was requested: the export can
         // fall back to a format the browser supports or to a smaller size.
         const filename = `${base}-edit.${extensionFor(result.format)}`;
-        const outcome = await shareOrDownload(
+        const outcome = await deliverFile(
           result.blob,
           filename,
           result.format,
+          delivery,
         );
         if (outcome === "cancelled") {
           showToast({ title: "Save cancelled", status: "neutral" });

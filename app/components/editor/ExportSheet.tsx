@@ -17,6 +17,7 @@ import type {
   CropState,
   ExportDimensions,
   ExportOptions,
+  SaveDelivery,
 } from "@/app/lib/editor/types";
 import {
   constrainExportDimensions,
@@ -30,7 +31,7 @@ import {
 export interface ExportSheetProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onExport: (options: ExportOptions) => void;
+  onExport: (options: ExportOptions, delivery: SaveDelivery) => void;
   progress: number | null;
   cancelling?: boolean;
   onCancelExport?: () => void;
@@ -173,6 +174,12 @@ export function ExportSheet({
     getExportDimensions,
   ]);
 
+  const startExport = (delivery: SaveDelivery) =>
+    onExport(
+      { format, quality: format === "image/png" ? 1 : quality, size },
+      delivery,
+    );
+
   const showJpegAlphaWarning =
     format === "image/jpeg" &&
     (sourceMimeType === "image/png" || sourceMimeType === "image/webp");
@@ -296,16 +303,23 @@ export function ExportSheet({
               variant="primary"
               size="lg"
               className="w-full rounded-control font-medium"
-              onClick={() =>
-                onExport({
-                  format,
-                  quality: format === "image/png" ? 1 : quality,
-                  size,
-                })
-              }
+              onClick={() => startExport(canShareFiles ? "share" : "download")}
             >
-              {canShareFiles ? "Share" : "Save"}
+              {canShareFiles ? "Share" : "Download"}
             </Button>
+            {/* Sharing is the phone-shaped default, but it is a detour when
+                what someone wants is the file in their downloads — and on
+                Android the share sheet was the only way out. */}
+            {canShareFiles ? (
+              <Button
+                variant="ghost"
+                size="lg"
+                className="w-full rounded-control border border-hairline font-medium"
+                onClick={() => startExport("download")}
+              >
+                Download
+              </Button>
+            ) : null}
             <Button
               variant="ghost"
               size="md"
