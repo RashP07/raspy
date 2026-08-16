@@ -95,7 +95,9 @@ async function renderExport(request: ExportRequest): Promise<EncodedImage> {
   const { width, height, bitmap } = request;
   const canvas = new OffscreenCanvas(width, height);
   const gl = canvas.getContext("webgl2", {
-    alpha: true,
+    // Opaque buffer for JPEG: it composites over white on the GPU instead of
+    // through a second full-resolution canvas. See the main-thread path.
+    alpha: request.format !== "image/jpeg",
     antialias: false,
     preserveDrawingBuffer: true,
   });
@@ -153,6 +155,13 @@ async function renderExport(request: ExportRequest): Promise<EncodedImage> {
 
     const adj = request.adjustments;
     gl.viewport(0, 0, width, height);
+    if (request.format === "image/jpeg") {
+      // Source-over white, in one pass.
+      gl.clearColor(1, 1, 1, 1);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    }
     gl.useProgram(program);
     gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -189,23 +198,6 @@ async function renderExport(request: ExportRequest): Promise<EncodedImage> {
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
     self.postMessage({ id: request.id, type: "progress", value: 0.8 });
-
-    if (request.format === "image/jpeg") {
-      // Alpha would encode as black, so flatten onto white first.
-      const flat = new OffscreenCanvas(width, height);
-      const ctx = flat.getContext("2d");
-      if (!ctx) {
-        throw new ExportError(
-          "memory",
-          "2D context unavailable in worker",
-          "Your browser ran out of memory for an image this size. Close other tabs, or pick a smaller size.",
-        );
-      }
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(canvas, 0, 0);
-      return await encodeCanvas(flat, request.format, request.quality);
-    }
 
     return await encodeCanvas(canvas, request.format, request.quality);
   } finally {

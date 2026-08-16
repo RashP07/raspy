@@ -12,9 +12,11 @@
 import type { ExportDimensions } from "@/app/lib/editor/types";
 
 /**
- * Bytes per output pixel we assume an export costs. The drawing buffer is 4,
- * and the JPEG path allocates a second canvas to flatten onto white before
- * encoding, so 8 is the honest figure for the peak.
+ * Bytes per output pixel we assume an export costs at its peak: 4 for the GPU
+ * drawing buffer, and 4 more for the copy the browser reads back to hand the
+ * encoder. Every format now costs the same — JPEG used to want a further 4 for
+ * the canvas it flattened onto, until it learned to composite over white on
+ * the GPU instead.
  */
 const BYTES_PER_PIXEL = 8;
 

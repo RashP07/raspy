@@ -558,7 +558,11 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     exportCanvas.width = width;
     exportCanvas.height = height;
     const exportGl = exportCanvas.getContext("webgl2", {
-      alpha: true,
+      // JPEG cannot carry alpha, so it renders straight into an opaque buffer
+      // and composites over white on the GPU. The alternative — a second
+      // full-resolution 2D canvas to flatten onto — cost another 4 bytes per
+      // pixel at exactly the moment memory was tightest.
+      alpha: options.format !== "image/jpeg",
       antialias: false,
       preserveDrawingBuffer: true,
     });
@@ -709,6 +713,14 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       mode: "adjust",
     });
     exportGl.viewport(0, 0, width, height);
+    if (options.format === "image/jpeg") {
+      // Source-over white, in one pass: the same result the flattening canvas
+      // produced, for none of the memory.
+      exportGl.clearColor(1, 1, 1, 1);
+      exportGl.clear(exportGl.COLOR_BUFFER_BIT);
+      exportGl.enable(exportGl.BLEND);
+      exportGl.blendFunc(exportGl.SRC_ALPHA, exportGl.ONE_MINUS_SRC_ALPHA);
+    }
     exportGl.useProgram(program);
     exportGl.activeTexture(exportGl.TEXTURE0);
     exportGl.bindTexture(exportGl.TEXTURE_2D, tex);
@@ -747,32 +759,10 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     onProgress?.(0.8);
     if (signal.aborted) throw abortError();
 
-    let encoded: EncodedImage;
-    if (options.format === "image/jpeg") {
-      // Composite on white for JPEG
-      const flat = document.createElement("canvas");
-      flat.width = width;
-      flat.height = height;
-      const ctx = flat.getContext("2d");
-      if (!ctx) throw contextUnavailable();
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, width, height);
-      ctx.drawImage(exportCanvas, 0, 0);
-      try {
-        encoded = await abortable(
-          encodeCanvas(flat, options.format, options.quality),
-          signal,
-        );
-      } finally {
-        flat.width = 0;
-        flat.height = 0;
-      }
-    } else {
-      encoded = await abortable(
-        encodeCanvas(exportCanvas, options.format, options.quality),
-        signal,
-      );
-    }
+    const encoded = await abortable(
+      encodeCanvas(exportCanvas, options.format, options.quality),
+      signal,
+    );
 
     onProgress(1);
     return encoded;
