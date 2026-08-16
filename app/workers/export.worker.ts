@@ -9,7 +9,13 @@
 
 import { ADJUST_FRAG, FULLSCREEN_VERT } from "../lib/render/shaders";
 import { computeRenderGeometry } from "../lib/image/geometry";
-import type { AdjustmentState, CropState } from "../lib/editor/types";
+import { encodeCanvas, type EncodedImage } from "../lib/render/encode";
+import { ExportError } from "../lib/render/exportError";
+import type {
+  AdjustmentState,
+  CropState,
+  ExportOptions,
+} from "../lib/editor/types";
 
 const PREVIEW_LONG_EDGE = 2048;
 
@@ -23,7 +29,7 @@ interface ExportRequest {
   crop: CropState;
   adjustments: AdjustmentState;
   neutral: boolean;
-  format: string;
+  format: ExportOptions["format"];
   quality: number;
 }
 
@@ -85,7 +91,7 @@ function link(gl: WebGL2RenderingContext): WebGLProgram {
   return program;
 }
 
-async function renderExport(request: ExportRequest): Promise<Blob> {
+async function renderExport(request: ExportRequest): Promise<EncodedImage> {
   const { width, height, bitmap } = request;
   const canvas = new OffscreenCanvas(width, height);
   const gl = canvas.getContext("webgl2", {
@@ -188,20 +194,20 @@ async function renderExport(request: ExportRequest): Promise<Blob> {
       // Alpha would encode as black, so flatten onto white first.
       const flat = new OffscreenCanvas(width, height);
       const ctx = flat.getContext("2d");
-      if (!ctx) throw new Error("2D context unavailable in worker");
+      if (!ctx) {
+        throw new ExportError(
+          "memory",
+          "2D context unavailable in worker",
+          "Your browser ran out of memory for an image this size. Close other tabs, or pick a smaller size.",
+        );
+      }
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(canvas, 0, 0);
-      return await flat.convertToBlob({
-        type: request.format,
-        quality: request.quality,
-      });
+      return await encodeCanvas(flat, request.format, request.quality);
     }
 
-    return await canvas.convertToBlob({
-      type: request.format,
-      quality: request.format === "image/png" ? undefined : request.quality,
-    });
+    return await encodeCanvas(canvas, request.format, request.quality);
   } finally {
     if (tex) gl.deleteTexture(tex);
     if (program) gl.deleteProgram(program);
@@ -216,8 +222,8 @@ self.onmessage = (event: MessageEvent<ExportRequest>) => {
   void (async () => {
     try {
       self.postMessage({ id: request.id, type: "progress", value: 0.4 });
-      const blob = await renderExport(request);
-      self.postMessage({ id: request.id, type: "done", blob });
+      const { blob, format } = await renderExport(request);
+      self.postMessage({ id: request.id, type: "done", blob, format });
     } catch (error) {
       // The bitmap was transferred in; release it if the draw never consumed it.
       try {
@@ -225,10 +231,15 @@ self.onmessage = (event: MessageEvent<ExportRequest>) => {
       } catch {
         // Already closed.
       }
+      // An Error does not survive structured cloning with its subclass intact,
+      // so the parts the main thread needs travel as plain fields.
       self.postMessage({
         id: request.id,
         type: "error",
         message: error instanceof Error ? error.message : "Export failed",
+        code: error instanceof ExportError ? error.code : undefined,
+        userMessage:
+          error instanceof ExportError ? error.userMessage : undefined,
       });
     }
   })();

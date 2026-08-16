@@ -75,6 +75,23 @@ export interface ExportDimensions {
   reduced: boolean;
 }
 
+/**
+ * What an export actually produced. Format and size can both differ from what
+ * was asked for — the browser may lack a codec, and an encode that fails at
+ * full size is retried smaller — so the caller names and describes the file
+ * from this, never from the options it passed in.
+ */
+export interface ExportResult {
+  blob: Blob;
+  format: ExportOptions["format"];
+  width: number;
+  height: number;
+  /** The size the sheet promised, before any fallback. */
+  intended: { width: number; height: number };
+  /** True when the retry ladder had to give up pixels to succeed. */
+  downscaled: boolean;
+}
+
 export interface ViewTransform {
   zoom: number;
   panX: number;
@@ -100,7 +117,7 @@ export interface PhotoRenderer {
     options: ExportOptions,
     signal: AbortSignal,
     onProgress?: (progress: number) => void,
-  ): Promise<Blob>;
+  ): Promise<ExportResult>;
   dispose(): void;
   readonly supportsAdjustments: boolean;
 }

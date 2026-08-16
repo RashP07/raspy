@@ -5,8 +5,9 @@ import { ToastProvider, useToast } from "@/components/ui/toast";
 import { playConfirm, unlockTickAudio } from "@/app/lib/audio/tick";
 import { IconProvider } from "@/components/ui/icons";
 import { EditorProvider, useEditor } from "@/app/lib/editor/context";
-import type { ExportOptions } from "@/app/lib/editor/types";
+import type { ExportOptions, ExportResult } from "@/app/lib/editor/types";
 import { ImportError } from "@/app/lib/image/decode";
+import { describeExportFailure } from "@/app/lib/render/exportError";
 import { EditorShell } from "./EditorShell";
 import { ImportScreen } from "./ImportScreen";
 import { usePhotoExport, useRenderer } from "./useRenderer";
@@ -55,6 +56,37 @@ function extensionFor(format: ExportOptions["format"]): string {
     default:
       return "jpg";
   }
+}
+
+function formatLabel(format: ExportOptions["format"]): string {
+  return format === "image/png"
+    ? "PNG"
+    : format === "image/webp"
+      ? "WebP"
+      : "JPEG";
+}
+
+/**
+ * A sentence for anything the export had to change to succeed. Saying nothing
+ * would be the easier code and the worse behaviour: someone who asked for full
+ * size deserves to know they did not get it.
+ */
+function describeExportFallback(
+  result: ExportResult,
+  options: ExportOptions,
+): string | null {
+  const notes: string[] = [];
+  if (result.downscaled) {
+    notes.push(
+      `resized to ${result.width} × ${result.height} px so this device could encode it`,
+    );
+  }
+  if (result.format !== options.format) {
+    notes.push(
+      `saved as ${formatLabel(result.format)} — your browser can't encode ${formatLabel(options.format)}`,
+    );
+  }
+  return notes.length ? notes.join("; ") : null;
 }
 
 function EditorAppInner() {
@@ -149,24 +181,36 @@ function EditorAppInner() {
       setExportCancelling(false);
       setBusy("Saving…");
       try {
-        const blob = await runExport(options, controller.signal, (progress) =>
+        const result = await runExport(options, controller.signal, (progress) =>
           setExportProgress(progress),
         );
         const base =
           state.project.source.name.replace(/\.[^.]+$/, "") || "raspy";
-        const filename = `${base}-edit.${extensionFor(options.format)}`;
-        const outcome = await shareOrDownload(blob, filename, options.format);
+        // Named from what was produced, not what was requested: the export can
+        // fall back to a format the browser supports or to a smaller size.
+        const filename = `${base}-edit.${extensionFor(result.format)}`;
+        const outcome = await shareOrDownload(
+          result.blob,
+          filename,
+          result.format,
+        );
         if (outcome === "cancelled") {
           showToast({ title: "Save cancelled", status: "neutral" });
         } else {
           // Only a real save gets the flourish — a cancelled share is not a
           // success, however far the export got.
           playConfirm();
+          const fallback = describeExportFallback(result, options);
           showToast({
             title: outcome === "shared" ? "Shared" : "Saved",
-            description:
-              outcome === "shared" ? filename : `Saved as ${filename}`,
+            description: fallback
+              ? `${outcome === "shared" ? filename : `Saved as ${filename}`} — ${fallback}`
+              : outcome === "shared"
+                ? filename
+                : `Saved as ${filename}`,
             status: "success",
+            // A silent downgrade should be readable, not glimpsed.
+            timeout: fallback ? 8000 : undefined,
           });
         }
         setExportOpen(false);
@@ -174,12 +218,13 @@ function EditorAppInner() {
         if (controller.signal.aborted) {
           showToast({ title: "Save cancelled", status: "neutral" });
         } else {
-          // Renderer failures carry internals like "2D context unavailable"
-          // and raw shader logs; log them and show something actionable.
+          // Renderer failures carry internals like raw shader logs; log those
+          // and show the actionable message the export attached.
           console.error("Save failed", error);
+          const { title, description } = describeExportFailure(error);
           showToast({
-            title: "Couldn't save photo",
-            description: "Try a smaller size or a different format.",
+            title,
+            description,
             status: "error",
             timeout: 0,
           });

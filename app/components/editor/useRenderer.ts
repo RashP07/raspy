@@ -6,6 +6,7 @@ import type {
   EditorMode,
   ExportDimensions,
   ExportOptions,
+  ExportResult,
   PhotoRenderer,
   ProjectState,
   ViewTransform,
@@ -23,7 +24,7 @@ export interface UseRendererResult {
     options: ExportOptions,
     signal: AbortSignal,
     onProgress?: (progress: number) => void,
-  ) => Promise<Blob>;
+  ) => Promise<ExportResult>;
   getExportDimensions: (options: ExportOptions) => ExportDimensions | null;
 }
 

@@ -1,6 +1,7 @@
 import type {
   ExportDimensions,
   ExportOptions,
+  ExportResult,
   PhotoRenderer,
   ProjectSource,
   ProjectState,
@@ -14,6 +15,13 @@ import {
 import { ADJUST_FRAG, FULLSCREEN_VERT } from "./shaders";
 import { drawSourceWithGeometry } from "./canvasDraw";
 import { displayScale } from "./displayScale";
+import { encodeCanvas, type EncodedImage } from "./encode";
+import {
+  ExportError,
+  isRetryableExportFailure,
+  type ExportFailureCode,
+} from "./exportError";
+import { exportAttemptLadder, exportMemoryCap } from "./exportLimits";
 
 function compileShader(
   gl: WebGL2RenderingContext,
@@ -438,22 +446,85 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     return constrainExportDimensions(
       requested,
       Math.min(this.maxTextureSize, 8192),
+      exportMemoryCap(),
     );
   }
 
+  /**
+   * Walks down {@link exportAttemptLadder} until one size encodes.
+   *
+   * Every ceiling we can compute up front is already applied by
+   * `getExportDimensions`, so reaching a retry means the device refused a size
+   * it had no way to warn us about — the Android failure mode, where a canvas
+   * allocates fine and then encodes to `null`. Half the pixels is a far better
+   * answer than the error toast that used to be the only one.
+   */
   async export(
     project: ProjectState,
     options: ExportOptions,
     signal: AbortSignal,
     onProgress?: (progress: number) => void,
-  ): Promise<Blob> {
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-    onProgress?.(0.05);
+  ): Promise<ExportResult> {
+    if (signal.aborted) throw abortError();
 
     const dimensions = this.getExportDimensions(project, options);
-    const { width, height } = dimensions.actual;
+    const ladder = exportAttemptLadder(dimensions.actual);
+    const report = monotonicProgress(onProgress);
 
-    onProgress?.(0.15);
+    let lastError: unknown = null;
+    for (const size of ladder) {
+      if (signal.aborted) throw abortError();
+      try {
+        const encoded = await this.exportAtSize(
+          project,
+          options,
+          size.width,
+          size.height,
+          signal,
+          report,
+        );
+        return {
+          blob: encoded.blob,
+          format: encoded.format,
+          width: size.width,
+          height: size.height,
+          intended: dimensions.actual,
+          downscaled: size.width !== dimensions.actual.width,
+        };
+      } catch (error) {
+        if (signal.aborted || (error as Error)?.name === "AbortError") throw error;
+        if (!isRetryableExportFailure(error)) throw error;
+        lastError = error;
+        console.warn(
+          `Export failed at ${size.width}×${size.height}; retrying smaller`,
+          error,
+        );
+        // Let the discarded canvas and drawing buffer actually go before the
+        // next attempt asks for a new one — retrying into the same pressure
+        // just fails again.
+        await releaseMemory();
+      }
+    }
+
+    throw lastError instanceof ExportError
+      ? lastError
+      : new ExportError(
+          "unknown",
+          lastError instanceof Error ? lastError.message : "Export failed",
+          "Saving failed even at a reduced size. Close other tabs and try again, or pick a smaller size.",
+          { cause: lastError },
+        );
+  }
+
+  private async exportAtSize(
+    project: ProjectState,
+    options: ExportOptions,
+    width: number,
+    height: number,
+    signal: AbortSignal,
+    onProgress: (progress: number) => void,
+  ): Promise<EncodedImage> {
+    onProgress(0.05);
 
     // Preferred path: draw and encode in a worker so a large export does not
     // block the UI thread. Tried before allocating anything here, so the
@@ -471,6 +542,12 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       } catch (error) {
         if (signal.aborted || (error as Error)?.name === "AbortError")
           throw error;
+        if (error instanceof ExportError && error.code === "encode") {
+          // The worker got as far as encoding and the encoder said no. The
+          // main thread would run the identical code path to the identical
+          // answer; hand it up so the ladder drops a size instead.
+          throw error;
+        }
         // Anything else means the worker path is unavailable on this browser
         // — no OffscreenCanvas WebGL2, a blocked worker URL — and the
         // main-thread path below still works.
@@ -489,8 +566,12 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       if (!isNeutral(project)) {
         // exportVia2d draws the raw source with no shader; exporting a
         // non-neutral project through it would silently drop every slider.
-        throw new Error(
-          "Export needs WebGL to apply your adjustments. Close other tabs and try again.",
+        // Retryable: a context refused at this size may well be granted at
+        // half the pixels.
+        throw new ExportError(
+          "webgl",
+          "WebGL2 context unavailable for export",
+          "Your adjustments need graphics support that isn't available right now. Close other tabs and try again.",
         );
       }
       return this.exportVia2d(
@@ -545,9 +626,9 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     width: number,
     height: number,
     signal: AbortSignal,
-    onProgress: ((progress: number) => void) | undefined,
+    onProgress: (progress: number) => void,
     held: ExportResources,
-  ): Promise<Blob> {
+  ): Promise<EncodedImage> {
     const program = createProgram(exportGl, FULLSCREEN_VERT, ADJUST_FRAG);
     held.program = program;
     const uniforms = getUniforms(exportGl, program, Object.keys(this.uniforms));
@@ -666,20 +747,20 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     onProgress?.(0.8);
     if (signal.aborted) throw abortError();
 
-    let blob: Blob;
+    let encoded: EncodedImage;
     if (options.format === "image/jpeg") {
       // Composite on white for JPEG
       const flat = document.createElement("canvas");
       flat.width = width;
       flat.height = height;
       const ctx = flat.getContext("2d");
-      if (!ctx) throw new Error("2D context unavailable");
+      if (!ctx) throw contextUnavailable();
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
       ctx.drawImage(exportCanvas, 0, 0);
       try {
-        blob = await abortable(
-          canvasToBlob(flat, options.format, options.quality),
+        encoded = await abortable(
+          encodeCanvas(flat, options.format, options.quality),
           signal,
         );
       } finally {
@@ -687,14 +768,14 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
         flat.height = 0;
       }
     } else {
-      blob = await abortable(
-        canvasToBlob(exportCanvas, options.format, options.quality),
+      encoded = await abortable(
+        encodeCanvas(exportCanvas, options.format, options.quality),
         signal,
       );
     }
 
-    onProgress?.(1);
-    return blob;
+    onProgress(1);
+    return encoded;
   }
 
   /**
@@ -707,14 +788,14 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     width: number,
     height: number,
     signal: AbortSignal,
-    onProgress?: (progress: number) => void,
-  ): Promise<Blob> {
+    onProgress: (progress: number) => void,
+  ): Promise<EncodedImage> {
     const bitmap = await abortable(
       createPreviewBitmap(project.source.blob, this.maxTextureSize),
       signal,
       closeBitmap,
     );
-    onProgress?.(0.3);
+    onProgress(0.3);
 
     const worker = new Worker(
       new URL("../../workers/export.worker.ts", import.meta.url),
@@ -723,7 +804,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     const id = ++exportRequestId;
 
     try {
-      return await new Promise<Blob>((resolve, reject) => {
+      const encoded = await new Promise<EncodedImage>((resolve, reject) => {
         const onAbort = () => reject(abortError());
         signal.addEventListener("abort", onAbort, { once: true });
 
@@ -738,15 +819,34 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
             type: "progress" | "done" | "error";
             value?: number;
             blob?: Blob;
+            format?: EncodedImage["format"];
+            code?: ExportFailureCode;
+            userMessage?: string;
             message?: string;
           };
           if (data.id !== id) return;
           if (data.type === "progress") {
-            onProgress?.(data.value ?? 0);
+            onProgress(data.value ?? 0);
           } else if (data.type === "done" && data.blob) {
-            settle(() => resolve(data.blob as Blob));
+            const blob = data.blob;
+            settle(() =>
+              resolve({ blob, format: data.format ?? options.format }),
+            );
           } else {
-            settle(() => reject(new Error(data.message ?? "Export failed")));
+            // A worker failure crosses as plain data; rebuild the typed error
+            // so the ladder can still tell a bad encode from a dead worker.
+            settle(() =>
+              reject(
+                data.code
+                  ? new ExportError(
+                      data.code,
+                      data.message ?? "Export failed",
+                      data.userMessage ??
+                        "This size was too large for your browser to encode. Try a smaller size.",
+                    )
+                  : new Error(data.message ?? "Export failed"),
+              ),
+            );
           }
         };
         worker.onerror = () =>
@@ -769,12 +869,15 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
           [bitmap as unknown as Transferable],
         );
       });
+      // Only a finished export is 100%. Reporting it in the `finally` used to
+      // pin the bar at full while a retry was still running.
+      onProgress(1);
+      return encoded;
     } finally {
       // Terminating is the cleanup: it takes the OffscreenCanvas, its GL
       // context, and any in-flight encode with it, which is what makes abort
       // immediate rather than cooperative.
       worker.terminate();
-      onProgress?.(1);
     }
   }
 
@@ -784,13 +887,13 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     width: number,
     height: number,
     signal: AbortSignal,
-    onProgress?: (progress: number) => void,
-  ): Promise<Blob> {
+    onProgress: (progress: number) => void,
+  ): Promise<EncodedImage> {
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("2D context unavailable");
+    if (!ctx) throw contextUnavailable();
     if (options.format === "image/jpeg") {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
@@ -807,9 +910,9 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     });
     drawSourceWithGeometry(ctx, bitmap, geometry);
     if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
-    if (signal.aborted) throw new DOMException("Aborted", "AbortError");
-    onProgress?.(1);
-    return canvasToBlob(canvas, options.format, options.quality);
+    if (signal.aborted) throw abortError();
+    onProgress(1);
+    return encodeCanvas(canvas, options.format, options.quality);
   }
 
   dispose(): void {
@@ -836,19 +939,41 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
   }
 }
 
-function canvasToBlob(
-  canvas: HTMLCanvasElement,
-  type: string,
-  quality: number,
-): Promise<Blob> {
-  return new Promise((resolve, reject) => {
-    canvas.toBlob(
-      (blob) => {
-        if (!blob) reject(new Error("Export encoding failed"));
-        else resolve(blob);
-      },
-      type,
-      type === "image/png" ? undefined : quality,
-    );
+function contextUnavailable(): ExportError {
+  return new ExportError(
+    "memory",
+    "2D context unavailable",
+    "Your browser ran out of memory for an image this size. Close other tabs, or pick a smaller size.",
+  );
+}
+
+/**
+ * Progress never runs backwards, even though a retry genuinely restarts the
+ * work — a bar that resets reads as a hang, and the person watching it cannot
+ * act on the difference anyway.
+ */
+function monotonicProgress(
+  onProgress?: (progress: number) => void,
+): (progress: number) => void {
+  let high = 0;
+  return (value) => {
+    if (value <= high) return;
+    high = value;
+    onProgress?.(value);
+  };
+}
+
+/**
+ * Yields long enough for a discarded canvas and its drawing buffer to be
+ * reclaimed before the next attempt allocates. Two frames, because the compositor
+ * holds the last one it saw.
+ */
+function releaseMemory(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame !== "function") {
+      setTimeout(resolve, 50);
+      return;
+    }
+    requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
   });
 }

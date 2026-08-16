@@ -1,6 +1,7 @@
 import type {
   ExportDimensions,
   ExportOptions,
+  ExportResult,
   PhotoRenderer,
   ProjectSource,
   ProjectState,
@@ -13,6 +14,9 @@ import {
 } from "@/app/lib/image/geometry";
 import { drawSourceWithGeometry } from "./canvasDraw";
 import { displayScale } from "./displayScale";
+import { encodeCanvas } from "./encode";
+import { ExportError, isRetryableExportFailure } from "./exportError";
+import { exportAttemptLadder, exportMemoryCap } from "./exportLimits";
 
 /**
  * Canvas 2D fallback: crop/orientation/export only. Adjustments are no-ops.
@@ -79,23 +83,79 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
         options.size,
       ),
       8192,
+      exportMemoryCap(),
     );
   }
 
+  /** Same ladder as the WebGL path: a failed encode retries at fewer pixels. */
   async export(
     project: ProjectState,
     options: ExportOptions,
     signal: AbortSignal,
     onProgress?: (progress: number) => void,
-  ): Promise<Blob> {
+  ): Promise<ExportResult> {
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+    const intended = this.getExportDimensions(project, options).actual;
+    let lastError: unknown = null;
+    for (const size of exportAttemptLadder(intended)) {
+      if (signal.aborted) throw new DOMException("Aborted", "AbortError");
+      try {
+        const encoded = await this.exportAtSize(
+          project,
+          options,
+          size.width,
+          size.height,
+          signal,
+          onProgress,
+        );
+        return {
+          blob: encoded.blob,
+          format: encoded.format,
+          width: size.width,
+          height: size.height,
+          intended,
+          downscaled: size.width !== intended.width,
+        };
+      } catch (error) {
+        if (signal.aborted || (error as Error)?.name === "AbortError") throw error;
+        if (!isRetryableExportFailure(error)) throw error;
+        lastError = error;
+        console.warn(
+          `Export failed at ${size.width}×${size.height}; retrying smaller`,
+          error,
+        );
+      }
+    }
+    throw lastError instanceof ExportError
+      ? lastError
+      : new ExportError(
+          "unknown",
+          lastError instanceof Error ? lastError.message : "Export failed",
+          "Saving failed even at a reduced size. Close other tabs and try again, or pick a smaller size.",
+          { cause: lastError },
+        );
+  }
+
+  private async exportAtSize(
+    project: ProjectState,
+    options: ExportOptions,
+    width: number,
+    height: number,
+    signal: AbortSignal,
+    onProgress?: (progress: number) => void,
+  ) {
     onProgress?.(0.2);
-    const { width, height } = this.getExportDimensions(project, options).actual;
     const canvas = document.createElement("canvas");
     canvas.width = width;
     canvas.height = height;
     const ctx = canvas.getContext("2d");
-    if (!ctx) throw new Error("2D context unavailable");
+    if (!ctx) {
+      throw new ExportError(
+        "memory",
+        "2D context unavailable",
+        "Your browser ran out of memory for an image this size. Close other tabs, or pick a smaller size.",
+      );
+    }
     if (options.format === "image/jpeg") {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
@@ -117,16 +177,13 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
     if ("close" in bitmap && typeof bitmap.close === "function") bitmap.close();
     if (signal.aborted) throw new DOMException("Aborted", "AbortError");
     onProgress?.(1);
-    return new Promise((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => {
-          if (!blob) reject(new Error("Export encoding failed"));
-          else resolve(blob);
-        },
-        options.format,
-        options.format === "image/png" ? undefined : options.quality,
-      );
-    });
+    try {
+      return await encodeCanvas(canvas, options.format, options.quality);
+    } finally {
+      // Free the backing store now; a retry is about to ask for another one.
+      canvas.width = 0;
+      canvas.height = 0;
+    }
   }
 
   dispose(): void {
