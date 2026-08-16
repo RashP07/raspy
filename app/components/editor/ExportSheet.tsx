@@ -25,7 +25,7 @@ import {
 } from "@/app/lib/image/geometry";
 import {
   describeExportCeiling,
-  exportMemoryCap,
+  exportMemoryCapFor,
 } from "@/app/lib/render/exportLimits";
 
 export interface ExportSheetProps {
@@ -161,7 +161,7 @@ export function ExportSheet({
       constrainExportDimensions(
         requestedExportDimensions(sourceWidth, sourceHeight, crop, size),
         8192,
-        exportMemoryCap(),
+        exportMemoryCapFor(format),
       )
     );
   }, [

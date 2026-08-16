@@ -8,7 +8,12 @@
  */
 
 import { ADJUST_FRAG, FULLSCREEN_VERT } from "../lib/render/shaders";
-import { computeRenderGeometry } from "../lib/image/geometry";
+import {
+  bandSourceUvMatrix,
+  computeRenderGeometry,
+} from "../lib/image/geometry";
+import { BandedJpegEncoder } from "../lib/image/jpegEncoder";
+import { bandRowsFor, supportsBandedExport } from "../lib/render/exportLimits";
 import { encodeCanvas, type EncodedImage } from "../lib/render/encode";
 import { ExportError } from "../lib/render/exportError";
 import type {
@@ -93,7 +98,11 @@ function link(gl: WebGL2RenderingContext): WebGLProgram {
 
 async function renderExport(request: ExportRequest): Promise<EncodedImage> {
   const { width, height, bitmap } = request;
-  const canvas = new OffscreenCanvas(width, height);
+  const banded = supportsBandedExport(request.format);
+  // Banded: the drawing buffer is one strip tall no matter how large the
+  // export, because the encoder consumes the image in strips too.
+  const bandRows = banded ? Math.min(height, bandRowsFor(width)) : height;
+  const canvas = new OffscreenCanvas(width, bandRows);
   const gl = canvas.getContext("webgl2", {
     // Opaque buffer for JPEG: it composites over white on the GPU instead of
     // through a second full-resolution canvas. See the main-thread path.
@@ -154,11 +163,10 @@ async function renderExport(request: ExportRequest): Promise<EncodedImage> {
     });
 
     const adj = request.adjustments;
-    gl.viewport(0, 0, width, height);
+    gl.viewport(0, 0, width, bandRows);
     if (request.format === "image/jpeg") {
       // Source-over white, in one pass.
       gl.clearColor(1, 1, 1, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     }
@@ -173,11 +181,6 @@ async function renderExport(request: ExportRequest): Promise<EncodedImage> {
     );
     gl.uniform1f(uniforms.u_compare, 0);
     gl.uniform1f(uniforms.u_neutral, request.neutral ? 1 : 0);
-    gl.uniformMatrix3fv(
-      uniforms.u_sourceUvFromOutput,
-      false,
-      geometry.sourceUvFromOutput,
-    );
     gl.uniform1f(uniforms.u_exposure, adj.exposure);
     gl.uniform1f(uniforms.u_brilliance, adj.brilliance);
     gl.uniform1f(uniforms.u_highlights, adj.highlights);
@@ -193,13 +196,52 @@ async function renderExport(request: ExportRequest): Promise<EncodedImage> {
     gl.uniform1f(uniforms.u_definition, adj.definition);
     gl.uniform1f(uniforms.u_noiseReduction, adj.noiseReduction);
     gl.uniform1f(uniforms.u_vignette, adj.vignette);
-
     gl.bindVertexArray(vao);
-    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
-    self.postMessage({ id: request.id, type: "progress", value: 0.8 });
+    const draw = (matrix: Float32Array) => {
+      gl.uniformMatrix3fv(uniforms.u_sourceUvFromOutput, false, matrix);
+      if (request.format === "image/jpeg") gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
 
-    return await encodeCanvas(canvas, request.format, request.quality);
+    if (!banded) {
+      draw(geometry.sourceUvFromOutput);
+      self.postMessage({ id: request.id, type: "progress", value: 0.8 });
+      return await encodeCanvas(canvas, request.format, request.quality);
+    }
+
+    const encoder = new BandedJpegEncoder({
+      width,
+      height,
+      quality: request.quality,
+    });
+    const pixels = new Uint8Array(width * bandRows * 4);
+    for (let top = 0; top < height; top += bandRows) {
+      const rows = Math.min(bandRows, height - top);
+      // The band's own UV space maps back onto the full output, inverted in y.
+      // The inversion is not cosmetic: readPixels hands rows back bottom-up,
+      // and flipping here means they arrive in the order the encoder wants
+      // without a pass to turn them around. A short final band still draws its
+      // full height — the surplus falls past the image and is never read.
+      draw(
+        bandSourceUvMatrix(geometry.sourceUvFromOutput, top, bandRows, height),
+      );
+      const band = rows === bandRows ? pixels : pixels.subarray(0, width * rows * 4);
+      gl.readPixels(0, 0, width, rows, gl.RGBA, gl.UNSIGNED_BYTE, band);
+      encoder.addRows(band, rows);
+      self.postMessage({
+        id: request.id,
+        type: "progress",
+        value: 0.4 + 0.55 * ((top + rows) / height),
+      });
+    }
+    // slice() both copies out of the encoder's oversized backing store and
+    // hands the Blob a buffer sized exactly to the image.
+    const bytes = encoder.finish().slice();
+    return {
+      blob: new Blob([bytes.buffer as ArrayBuffer], { type: "image/jpeg" }),
+      format: "image/jpeg",
+    };
   } finally {
     if (tex) gl.deleteTexture(tex);
     if (program) gl.deleteProgram(program);

@@ -270,6 +270,33 @@ export function computeRenderGeometry(input: GeometryInput): RenderGeometry {
   };
 }
 
+/**
+ * Remaps a full-output source-UV matrix onto one horizontal band of it.
+ *
+ * The band renders into a framebuffer only `bandRows` tall, so its own output
+ * UV covers [0,1] over the band alone. This composes the mapping back onto the
+ * full output — and inverts y while doing it, because `readPixels` returns rows
+ * bottom-up. Rendering the band upside down means the rows come back in
+ * top-down order with no pass to reverse them, which at export sizes is a
+ * whole buffer's worth of copying not done.
+ *
+ * The result: framebuffer row `j` of the band is output row `top + j`.
+ */
+export function bandSourceUvMatrix(
+  sourceUvFromOutput: Mat3,
+  top: number,
+  bandRows: number,
+  outputHeight: number,
+): Mat3 {
+  return multiplyMat3(
+    sourceUvFromOutput,
+    multiplyMat3(
+      translationMat3(0, (top + bandRows) / outputHeight),
+      scaleMat3(1, -bandRows / outputHeight),
+    ),
+  );
+}
+
 export function requestedExportDimensions(
   sourceWidth: number,
   sourceHeight: number,

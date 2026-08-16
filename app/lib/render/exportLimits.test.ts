@@ -1,9 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  bandRowsFor,
   describeExportCeiling,
   exportAttemptLadder,
   exportMemoryCap,
+  exportMemoryCapFor,
   exportPixelBudget,
+  supportsBandedExport,
   MIN_EXPORT_LONG_EDGE,
 } from "./exportLimits";
 import { constrainExportDimensions } from "@/app/lib/image/geometry";
@@ -83,6 +86,72 @@ describe("describeExportCeiling", () => {
     const copy = describeExportCeiling(dimensions);
     expect(copy).toContain("34 megapixels");
     expect(copy).not.toContain("GB");
+  });
+});
+
+describe("banded export", () => {
+  const workerGlobals = ["Worker", "OffscreenCanvas", "createImageBitmap"];
+
+  function setWorkerSupport(available: boolean) {
+    for (const name of workerGlobals) {
+      if (available) {
+        Object.defineProperty(globalThis, name, {
+          configurable: true,
+          value: function stub() {},
+        });
+      } else {
+        Reflect.deleteProperty(globalThis, name);
+      }
+    }
+  }
+
+  afterEach(() => setWorkerSupport(false));
+
+  it("applies to JPEG only", () => {
+    setWorkerSupport(true);
+    expect(supportsBandedExport("image/jpeg")).toBe(true);
+    // PNG needs streaming deflate; no browser can encode WebP incrementally.
+    expect(supportsBandedExport("image/png")).toBe(false);
+    expect(supportsBandedExport("image/webp")).toBe(false);
+  });
+
+  it("needs the worker path to exist", () => {
+    setWorkerSupport(false);
+    expect(supportsBandedExport("image/jpeg")).toBe(false);
+  });
+
+  it("lifts the memory budget for the format that can stream", () => {
+    setDeviceMemory(2);
+    setWorkerSupport(true);
+    expect(exportMemoryCapFor("image/jpeg")).toBe(Number.POSITIVE_INFINITY);
+    expect(exportMemoryCapFor("image/png")).toBe(exportMemoryCap());
+  });
+
+  it("falls back to the plain budget where banding cannot run", () => {
+    setDeviceMemory(2);
+    setWorkerSupport(false);
+    expect(exportMemoryCapFor("image/jpeg")).toBe(exportMemoryCap());
+  });
+});
+
+describe("bandRowsFor", () => {
+  it("always yields whole 16-row MCU strips", () => {
+    for (const width of [37, 640, 1920, 4032, 8192]) {
+      expect(bandRowsFor(width) % 16).toBe(0);
+      expect(bandRowsFor(width)).toBeGreaterThanOrEqual(16);
+    }
+  });
+
+  it("keeps the readback buffer bounded as the image widens", () => {
+    for (const width of [640, 1920, 4032, 8192]) {
+      const bytes = width * bandRowsFor(width) * 4;
+      expect(bytes).toBeLessThanOrEqual(8 * 1024 * 1024);
+    }
+  });
+
+  it("gives a narrow image fewer rows than its buffer could hold, not more", () => {
+    expect(bandRowsFor(64)).toBe(512);
+    expect(bandRowsFor(4000)).toBeLessThan(bandRowsFor(1000));
   });
 });
 

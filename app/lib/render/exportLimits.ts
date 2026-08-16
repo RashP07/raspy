@@ -9,7 +9,7 @@
  * file that actually saves.
  */
 
-import type { ExportDimensions } from "@/app/lib/editor/types";
+import type { ExportDimensions, ExportOptions } from "@/app/lib/editor/types";
 
 /**
  * Bytes per output pixel we assume an export costs at its peak: 4 for the GPU
@@ -65,6 +65,51 @@ export function exportMemoryCap(): number {
 /** The pixel budget behind {@link exportMemoryCap}, for messages and tests. */
 export function exportPixelBudget(): number {
   return Math.floor(exportMemoryCap() / BYTES_PER_PIXEL);
+}
+
+/** Whether the off-thread render-and-encode path can run here at all. */
+export function canUseWorkerExport(): boolean {
+  return (
+    typeof Worker !== "undefined" &&
+    typeof OffscreenCanvas !== "undefined" &&
+    typeof createImageBitmap === "function"
+  );
+}
+
+/**
+ * Whether this export can be rendered and encoded a strip at a time.
+ *
+ * Only baseline JPEG can: with 4:2:0 subsampling its unit of work is a
+ * 16-row MCU strip that depends on nothing outside itself. PNG would need
+ * streaming deflate, and no browser exposes an incremental WebP encoder at
+ * all, so both still hand a whole canvas to `toBlob`.
+ */
+export function supportsBandedExport(format: ExportOptions["format"]): boolean {
+  return format === "image/jpeg" && canUseWorkerExport();
+}
+
+/**
+ * Peak byte budget for an export in this format.
+ *
+ * A banded export's peak does not scale with its output — it holds one strip,
+ * not one image — so the only ceiling left is the long-edge limit the caller
+ * applies separately. Saying "no budget" here is the honest answer, not a
+ * missing one.
+ */
+export function exportMemoryCapFor(format: ExportOptions["format"]): number {
+  return supportsBandedExport(format)
+    ? Number.POSITIVE_INFINITY
+    : exportMemoryCap();
+}
+
+/**
+ * Rows per strip. Wide images get fewer so the readback buffer stays around
+ * 4 MB either way; always a multiple of the 16-row MCU so no strip splits one.
+ */
+export function bandRowsFor(width: number): number {
+  const target = Math.floor(4 * 1024 * 1024 / Math.max(1, width * 4));
+  const mcuRows = Math.floor(target / 16);
+  return Math.min(512, Math.max(16, mcuRows * 16));
 }
 
 /**

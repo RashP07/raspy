@@ -21,7 +21,11 @@ import {
   isRetryableExportFailure,
   type ExportFailureCode,
 } from "./exportError";
-import { exportAttemptLadder, exportMemoryCap } from "./exportLimits";
+import {
+  canUseWorkerExport,
+  exportAttemptLadder,
+  exportMemoryCapFor,
+} from "./exportLimits";
 
 function compileShader(
   gl: WebGL2RenderingContext,
@@ -66,14 +70,6 @@ function createProgram(
 const RESTORE_TIMEOUT_MS = 8000;
 
 let exportRequestId = 0;
-
-function canUseWorkerExport(): boolean {
-  return (
-    typeof Worker !== "undefined" &&
-    typeof OffscreenCanvas !== "undefined" &&
-    typeof createImageBitmap === "function"
-  );
-}
 
 function abortError(): DOMException {
   return new DOMException("Aborted", "AbortError");
@@ -446,7 +442,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     return constrainExportDimensions(
       requested,
       Math.min(this.maxTextureSize, 8192),
-      exportMemoryCap(),
+      exportMemoryCapFor(options.format),
     );
   }
 
