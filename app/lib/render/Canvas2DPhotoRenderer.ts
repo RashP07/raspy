@@ -6,7 +6,7 @@ import type {
   ProjectSource,
   ProjectState,
 } from "@/app/lib/editor/types";
-import { createPreviewBitmap } from "@/app/lib/image/decode";
+import { createPreviewBitmap, PREVIEW_LONG_EDGE } from "@/app/lib/image/decode";
 import {
   computeRenderGeometry,
   constrainExportDimensions,
@@ -35,7 +35,13 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
     if (this.source && "close" in this.source) {
       this.source.close();
     }
-    this.source = source.preview ?? (await createPreviewBitmap(source.blob));
+    this.source =
+      source.preview ??
+      (await createPreviewBitmap(
+        source.blob,
+        PREVIEW_LONG_EDGE,
+        source.mimeType,
+      ));
   }
 
   render(
@@ -163,6 +169,7 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
     const bitmap = await createPreviewBitmap(
       this.sourceBlob ?? project.source.blob,
       1e9,
+      project.source.mimeType,
     );
     const geometry = computeRenderGeometry({
       sourceWidth: project.source.width,

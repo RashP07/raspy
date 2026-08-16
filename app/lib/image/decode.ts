@@ -163,13 +163,40 @@ async function resizeBitmap(
   }
 
   const scale = maxLongEdge / longEdge;
-  const resized = await createImageBitmap(source, {
-    resizeWidth: Math.max(1, Math.round(width * scale)),
-    resizeHeight: Math.max(1, Math.round(height * scale)),
-    resizeQuality: "high",
-  });
+  const targetWidth = Math.max(1, Math.round(width * scale));
+  const targetHeight = Math.max(1, Math.round(height * scale));
+  try {
+    const resized = await createImageBitmap(source, {
+      resizeWidth: targetWidth,
+      resizeHeight: targetHeight,
+      resizeQuality: "high",
+    });
+    if ("close" in source && typeof source.close === "function") source.close();
+    return resized;
+  } catch {
+    // Not every engine honours the resize options, and the ones that do can
+    // still refuse at the sizes a phone camera produces. Returning the
+    // oversized bitmap is not an option — callers pass a texture limit — so
+    // fall back to a plain canvas downscale.
+    return drawToBitmap(source, targetWidth, targetHeight);
+  }
+}
+
+/** Only reached where `createImageBitmap` exists — see its one caller. */
+async function drawToBitmap(
+  source: ImageBitmap | HTMLImageElement,
+  width: number,
+  height: number,
+): Promise<ImageBitmap | HTMLImageElement> {
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) return source;
+  context.imageSmoothingQuality = "high";
+  context.drawImage(source, 0, 0, width, height);
   if ("close" in source && typeof source.close === "function") source.close();
-  return resized;
+  return createImageBitmap(canvas);
 }
 
 function loadHtmlImage(file: Blob): Promise<HTMLImageElement> {
@@ -188,11 +215,20 @@ function loadHtmlImage(file: Blob): Promise<HTMLImageElement> {
   });
 }
 
+/**
+ * `mimeTypeHint` is the type import sniffed out of the bytes. A blob picked
+ * from a photo library often carries no type at all, and without the hint a
+ * HEIC re-decode at save time never reaches the libheif fallback — it falls
+ * through to an `<img>` the browser cannot read either, and the save fails on
+ * a photo that opened fine.
+ */
 export async function createPreviewBitmap(
   source: Blob,
   maxLongEdge = PREVIEW_LONG_EDGE,
+  mimeTypeHint?: string,
 ): Promise<ImageBitmap | HTMLImageElement> {
   let full: ImageBitmap | HTMLImageElement | undefined;
+  const heic = isHeicMime(source.type) || isHeicMime(mimeTypeHint ?? "");
 
   if (typeof createImageBitmap === "function") {
     try {
@@ -200,8 +236,12 @@ export async function createPreviewBitmap(
         imageOrientation: "from-image",
       } as ImageBitmapOptions);
     } catch {
-      if (isHeicMime(source.type)) {
-        full = await decodeHeicBlob(source);
+      try {
+        full = await createImageBitmap(source);
+      } catch {
+        // Leave `full` unset on a HEIC failure too: the `<img>` fallback below
+        // is the last thing left to try, and on Safari it does read HEIC.
+        if (heic) full = await decodeHeicBlob(source).catch(() => undefined);
       }
     }
   }

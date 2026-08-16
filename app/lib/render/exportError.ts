@@ -17,6 +17,8 @@ export type ExportFailureCode =
   | "format"
   /** Adjustments need WebGL and it is gone; a smaller canvas may still get one. */
   | "webgl"
+  /** The source photo would not decode again at save time. */
+  | "decode"
   | "unknown";
 
 export class ExportError extends Error {
@@ -37,15 +39,25 @@ export class ExportError extends Error {
   }
 }
 
+/** Failures no amount of downscaling changes, so the ladder stops on them. */
+const TERMINAL_CODES = new Set<ExportFailureCode>([
+  // The browser has no encoder for the format at any size.
+  "format",
+  // The decode happens before a single output pixel is allocated, so a
+  // smaller output would run the identical decode to the identical failure —
+  // and walking the ladder anyway buries the real reason under a message
+  // about memory that has nothing to do with it.
+  "decode",
+]);
+
 /**
- * Whether retrying at a smaller size is worth a shot. Everything except a
- * format the browser flatly cannot encode gets another attempt: the failures
- * we see on Android are memory-shaped, and memory-shaped failures respond to
- * fewer pixels.
+ * Whether retrying at a smaller size is worth a shot. Everything except the
+ * terminal codes above gets another attempt: the failures we see on Android
+ * are memory-shaped, and memory-shaped failures respond to fewer pixels.
  */
 export function isRetryableExportFailure(error: unknown): boolean {
   if (error instanceof DOMException && error.name === "AbortError") return false;
-  if (error instanceof ExportError) return error.code !== "format";
+  if (error instanceof ExportError) return !TERMINAL_CODES.has(error.code);
   // Unrecognized failures come from the worker or the GL driver, both of which
   // fail more often at large sizes than small ones.
   return true;

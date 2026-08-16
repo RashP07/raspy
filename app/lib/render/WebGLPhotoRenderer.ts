@@ -544,9 +544,17 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
           // answer; hand it up so the ladder drops a size instead.
           throw error;
         }
+        if (!isRetryableExportFailure(error)) {
+          // A terminal failure — the file would not decode, the format has no
+          // encoder — is the same answer on either thread. Retrying it here
+          // only replaces a true message with a misleading one.
+          throw error;
+        }
         // Anything else means the worker path is unavailable on this browser
         // — no OffscreenCanvas WebGL2, a blocked worker URL — and the
-        // main-thread path below still works.
+        // main-thread path below still works. It is worth a line either way:
+        // when the main thread then fails too, this is the first half of why.
+        console.warn("Worker export unavailable; falling back", error);
       }
     }
 
@@ -650,7 +658,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     if (signal.aborted) throw abortError();
 
     const bitmap = await abortable(
-      createPreviewBitmap(project.source.blob, this.maxTextureSize),
+      this.decodeForExport(project),
       signal,
       closeBitmap,
     );
@@ -765,6 +773,37 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
   }
 
   /**
+   * Re-decodes the original file for an export.
+   *
+   * The sniffed mime type goes along for the ride: a photo picked from a
+   * library often arrives as a Blob with no type, and without it a HEIC never
+   * reaches the libheif fallback here even though import used it happily.
+   *
+   * A failure becomes an ExportError so the toast can say the photo would not
+   * re-open. Left as a bare Error it surfaced as the ladder's final "even at a
+   * reduced size" message, which sent people to close tabs over a decode that
+   * had nothing to do with memory.
+   */
+  private async decodeForExport(
+    project: ProjectState,
+  ): Promise<ImageBitmap | HTMLImageElement> {
+    try {
+      return await createPreviewBitmap(
+        project.source.blob,
+        this.maxTextureSize,
+        project.source.mimeType,
+      );
+    } catch (error) {
+      throw new ExportError(
+        "decode",
+        error instanceof Error ? error.message : "Source decode failed",
+        "This photo couldn't be re-opened to save it. Open it again from your library and try once more.",
+        { cause: error },
+      );
+    }
+  }
+
+  /**
    * Decode stays here because it owns the libheif fallback; the bitmap is then
    * transferred to the worker, which does the GPU draw and the encode.
    */
@@ -777,7 +816,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     onProgress: (progress: number) => void,
   ): Promise<EncodedImage> {
     const bitmap = await abortable(
-      createPreviewBitmap(project.source.blob, this.maxTextureSize),
+      this.decodeForExport(project),
       signal,
       closeBitmap,
     );
@@ -884,7 +923,11 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
     }
-    const bitmap = await createPreviewBitmap(project.source.blob, 1e9);
+    const bitmap = await createPreviewBitmap(
+      project.source.blob,
+      1e9,
+      project.source.mimeType,
+    );
     const geometry = computeRenderGeometry({
       sourceWidth: project.source.width,
       sourceHeight: project.source.height,
