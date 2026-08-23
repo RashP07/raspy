@@ -51,6 +51,30 @@ async function sniffMime(file: File): Promise<string> {
   return "";
 }
 
+/**
+ * Copies the picked file's bytes into a Blob we own.
+ *
+ * A File from an Android photo picker is a handle onto a `content://` URI, not
+ * the bytes themselves, and Android can revoke that handle while the tab is
+ * still open — backgrounding the browser to take a call is enough. Every later
+ * read then fails, which is why a save could not re-open a photo the editor was
+ * at that moment still displaying: the preview lives in a texture, and nothing
+ * touches the file again until the save re-decodes it at full resolution.
+ *
+ * The draft in IndexedDB was already a real copy, so restoring the last edit
+ * repaired the save. Taking the copy up front is that same durability, minus
+ * the round trip through storage.
+ */
+async function snapshotBlob(file: File, mimeType: string): Promise<Blob> {
+  try {
+    return new Blob([await file.arrayBuffer()], { type: mimeType });
+  } catch {
+    // The handle is already gone. Hand back the File so the decode below can
+    // fail with the import error that names the real problem.
+    return file;
+  }
+}
+
 export async function decodeImageSource(file: File): Promise<{
   blob: Blob;
   mimeType: string;
@@ -75,24 +99,26 @@ export async function decodeImageSource(file: File): Promise<{
   }
 
   const isHeic = mimeType === "image/heic" || mimeType === "image/heif";
+  // Everything downstream reads the snapshot, never the picked File.
+  const blob = await snapshotBlob(file, mimeType);
 
   let bitmap: ImageBitmap | HTMLImageElement;
   try {
     if (typeof createImageBitmap === "function") {
       try {
-        bitmap = await createImageBitmap(file, {
+        bitmap = await createImageBitmap(blob, {
           imageOrientation: "from-image",
         } as ImageBitmapOptions);
       } catch {
-        bitmap = await createImageBitmap(file);
+        bitmap = await createImageBitmap(blob);
       }
     } else {
-      bitmap = await loadHtmlImage(file);
+      bitmap = await loadHtmlImage(blob);
     }
   } catch {
     if (isHeic) {
       try {
-        bitmap = await decodeHeicBlob(file);
+        bitmap = await decodeHeicBlob(blob);
       } catch (error) {
         if (error instanceof Error && error.message.includes("60 megapixel")) {
           throw new ImportError(error.message, "DIMENSIONS");
@@ -141,7 +167,7 @@ export async function decodeImageSource(file: File): Promise<{
   const preview = await resizeBitmap(bitmap, PREVIEW_LONG_EDGE);
 
   return {
-    blob: file,
+    blob,
     mimeType: mimeType === "image/jpg" ? "image/jpeg" : mimeType,
     width,
     height,
