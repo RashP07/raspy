@@ -122,26 +122,3 @@ describe("drag affordance", () => {
     expect(root.querySelector(".border-dashed")).not.toBeInTheDocument();
   });
 });
-
-describe("draft restore", () => {
-  it("offers to continue only when a draft exists", async () => {
-    const onRestoreDraft = vi.fn();
-    const { rerender } = render(<ImportScreen onImport={vi.fn()} />);
-    expect(
-      screen.queryByRole("button", { name: /continue last edit/i }),
-    ).not.toBeInTheDocument();
-
-    rerender(
-      <ImportScreen onImport={vi.fn()} hasDraft onRestoreDraft={onRestoreDraft} />,
-    );
-    await userEvent.click(
-      screen.getByRole("button", { name: /continue last edit/i }),
-    );
-    expect(onRestoreDraft).toHaveBeenCalledTimes(1);
-  });
-
-  it("confirms when an edit came back from disk", () => {
-    render(<ImportScreen onImport={vi.fn()} draftRestored />);
-    expect(screen.getByText(/restored from this device/i)).toBeInTheDocument();
-  });
-});

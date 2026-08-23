@@ -8,7 +8,6 @@ import {
   useMemo,
   useReducer,
   useRef,
-  useState,
   type ReactNode,
 } from "react";
 import { createProject } from "./defaults";
@@ -24,17 +23,9 @@ import {
   type CropState,
   type EditorMode,
   type EditorUiState,
-  type ProjectState,
 } from "./types";
 import { decodeImageSource, ImportError } from "@/app/lib/image/decode";
-import {
-  clearDraft,
-  loadDraft,
-  requestPersistentStorage,
-  saveDraft,
-} from "@/app/lib/storage/idb";
-
-const AUTOSAVE_MS = 500;
+import { purgeStoredDraft } from "@/app/lib/storage/idb";
 
 function probeWebGL2(): boolean {
   try {
@@ -51,10 +42,8 @@ export interface EditorContextValue {
   dispatch: React.Dispatch<EditorAction>;
   canUndo: boolean;
   canRedo: boolean;
-  draftAvailable: ProjectState | null;
   importFile: (file: File) => Promise<void>;
   clearProject: () => Promise<void>;
-  restoreDraft: () => void;
   setMode: (mode: EditorMode) => void;
   setActiveAdjustment: (key: AdjustmentKey) => void;
   setComparing: (comparing: boolean) => void;
@@ -83,11 +72,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     undefined,
     createInitialEditorState,
   );
-  const [draftAvailable, setDraftAvailable] = useState<ProjectState | null>(
-    null,
-  );
   const mountedRef = useRef(true);
-  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -141,27 +126,12 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       onRendererStatus as EventListener,
     );
 
-    void (async () => {
-      try {
-        const draft = await loadDraft();
-        if (!mountedRef.current) return;
-        if (draft) setDraftAvailable(draft);
-      } catch {
-        if (mountedRef.current) {
-          dispatch({
-            type: "SET_STORAGE_WARNING",
-            warning: {
-              title: "Storage",
-              message: "Your last edit couldn't be read from this device.",
-            },
-          });
-        }
-      }
-    })();
+    // One-shot cleanup for the drafts autosave used to leave behind. Nothing
+    // waits on it and nothing surfaces if it fails; the next visit retries.
+    void purgeStoredDraft();
 
     return () => {
       mountedRef.current = false;
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
       window.removeEventListener(
         "raspy:renderer-capability",
         onCapability as EventListener,
@@ -173,30 +143,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       );
     };
   }, []);
-
-  useEffect(() => {
-    const project = state.project;
-    if (!project) return;
-
-    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    saveTimerRef.current = setTimeout(() => {
-      void saveDraft(project).catch(() => {
-        if (mountedRef.current) {
-          dispatch({
-            type: "SET_STORAGE_WARNING",
-            warning: {
-              title: "Storage",
-              message: "Autosave failed. Your edits may not be here next time.",
-            },
-          });
-        }
-      });
-    }, AUTOSAVE_MS);
-
-    return () => {
-      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
-    };
-  }, [state.project]);
 
   const importFile = useCallback(async (file: File) => {
     dispatch({ type: "SET_BUSY", busy: "Opening photo…" });
@@ -211,8 +157,6 @@ export function EditorProvider({ children }: { children: ReactNode }) {
         preview: decoded.bitmap,
       });
       dispatch({ type: "LOAD_PROJECT", project });
-      setDraftAvailable(null);
-      void requestPersistentStorage();
     } catch (error) {
       const message =
         error instanceof ImportError
@@ -227,27 +171,11 @@ export function EditorProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Async only because the caller has always awaited it, and a photo leaving
+  // the editor is exactly the shape of thing that may need to again.
   const clearProject = useCallback(async () => {
     dispatch({ type: "CLEAR_PROJECT" });
-    setDraftAvailable(null);
-    try {
-      await clearDraft();
-    } catch {
-      dispatch({
-        type: "SET_STORAGE_WARNING",
-        warning: {
-          title: "Storage",
-          message: "The saved draft couldn't be removed from this device.",
-        },
-      });
-    }
   }, []);
-
-  const restoreDraft = useCallback(() => {
-    if (!draftAvailable) return;
-    dispatch({ type: "LOAD_PROJECT", project: draftAvailable, restored: true });
-    setDraftAvailable(null);
-  }, [draftAvailable]);
 
   const value = useMemo<EditorContextValue>(
     () => ({
@@ -255,10 +183,8 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       dispatch,
       canUndo: state.past.length > 0,
       canRedo: state.future.length > 0,
-      draftAvailable,
       importFile,
       clearProject,
-      restoreDraft,
       setMode: (mode) => dispatch({ type: "SET_MODE", mode }),
       setActiveAdjustment: (key) =>
         dispatch({ type: "SET_ACTIVE_ADJUSTMENT", key }),
@@ -279,7 +205,7 @@ export function EditorProvider({ children }: { children: ReactNode }) {
       redo: () => dispatch({ type: "REDO" }),
       commitHistory: () => dispatch({ type: "COMMIT_HISTORY" }),
     }),
-    [state, draftAvailable, importFile, clearProject, restoreDraft],
+    [state, importFile, clearProject],
   );
 
   return (

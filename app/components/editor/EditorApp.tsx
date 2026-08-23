@@ -114,10 +114,8 @@ function describeExportFallback(
 function EditorAppInner() {
   const {
     state,
-    draftAvailable,
     importFile,
     clearProject,
-    restoreDraft,
     setExportOpen,
     setBusy,
     setRendererStatus,
@@ -274,15 +272,6 @@ function EditorAppInner() {
   }, [clearProject, resetViewTransform]);
 
   useEffect(() => {
-    if (!state.ui.draftRestored) return;
-    showToast({
-      title: "Last edit restored",
-      description: "Picked up where you left off.",
-      status: "info",
-    });
-  }, [state.ui.draftRestored, showToast]);
-
-  useEffect(() => {
     if (state.ui.storageWarning) {
       showToast({
         title: state.ui.storageWarning.title,
@@ -300,12 +289,6 @@ function EditorAppInner() {
             <ImportScreen
               onImport={handleImport}
               busy={state.ui.busy}
-              hasDraft={Boolean(draftAvailable)}
-              draftRestored={state.ui.draftRestored}
-              onRestoreDraft={() => {
-                resetViewTransform();
-                void restoreDraft();
-              }}
               error={importError}
             />
           ) : (

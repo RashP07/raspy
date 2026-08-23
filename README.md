@@ -11,7 +11,7 @@ can edit photos straight off an iPhone without handing them to an online
 converter first.
 
 **Stack:** React 19 · TypeScript · WebGL2 (GLSL ES 3.00) · Tailwind CSS 4 ·
-Web Workers · OffscreenCanvas · WebAssembly · IndexedDB · Service Worker ·
+Web Workers · OffscreenCanvas · WebAssembly · Service Worker ·
 Vitest + Testing Library
 
 ---
@@ -31,8 +31,8 @@ The phrase describes how the app is built, not just how it is marketed:
 - **Exports carry no metadata.** The file is re-encoded from raw canvas pixels,
   so EXIF and GPS are dropped — a shared photo does not carry the location where
   it was taken.
-- **Your work survives a closed tab.** A single draft is kept in IndexedDB, on
-  your machine, and restored when you come back.
+- **Nothing is written to disk.** The photo lives in memory for as long as its
+  tab is open, and closing the tab is the end of it.
 - **It works offline**, and the service worker is written so photo data can
   never enter the cache.
 
@@ -223,17 +223,15 @@ History is a `past`/`future` pair of `{adjustments, crop}` snapshots capped at
 or crop gesture collapses into exactly **one** undo step rather than one per
 pointer event. No-op edits are suppressed by snapshot comparison before pushing.
 
-## Persistence and offline
+## Offline
 
-Autosave is **debounced at 500 ms** and writes to IndexedDB (raw API, no
-wrapper) under a single `"active"` key. It stores the original `Blob`, never a
-decoded bitmap or rendered output. Records are schema-versioned and rejected on
-mismatch. Storage failures degrade gracefully into a user-visible warning rather
-than a thrown error, and `navigator.storage.persist()` is requested after a
-successful import to reduce the chance of eviction.
-
-Draft restore is **opt-in**: a recovered draft surfaces as a "Continue last
-edit" button rather than silently reopening someone's photo.
+Nothing an editing session produces is persisted. Raspy used to autosave one
+draft — the original `Blob` plus its adjustments — to IndexedDB and offer it
+back as a "Continue last edit" button. That is gone, along with the store: the
+provider deletes the `raspy` database on mount, so a photo an older version
+wrote is cleared on the next visit rather than left on disk with nothing in the
+app able to reach it. The cost is real and worth naming — a closed tab now
+loses the edit.
 
 The service worker precaches six app-shell entries and uses
 stale-while-revalidate. Its cache-write path refuses any response whose
@@ -314,23 +312,23 @@ Reduce Motion asks for less movement, not less sound.
 
 ## Testing
 
-98 Vitest tests across two projects — a `node` project for pure logic and a
+134 Vitest tests across two projects — a `node` project for pure logic and a
 `jsdom` one for components, so the logic tests keep running without a DOM they
 never needed.
 
-**Logic (49):** reducer history semantics including gesture coalescing, the
+**Logic (87):** reducer history semantics including gesture coalescing, the
 undo/redo boundaries and the 50-entry cap; the display-scale heuristics, 9 cases
 each with stubbed globals since the module memoises; crop maths; geometry
-including matrix invertibility and export-dimension clamping; and IndexedDB
-round-trips against `fake-indexeddb`, covering the schema-version rejection and
-the rule that the source blob is stored rather than a decoded bitmap.
+including matrix invertibility and export-dimension clamping; the export
+failure taxonomy, covering which codes the retry ladder treats as terminal; the
+import snapshot, covering the revoked-handle case that made saves fail on
+Android; and the legacy-draft purge against `fake-indexeddb`.
 
-**Components and integration (49):** the autosave debounce — that a burst of
-slider edits collapses to a single write, and that a failed write raises a
-warning instead of throwing; draft restore staying opt-in; import error, busy,
-and drag-affordance states, including the enter/leave pairing that used to make
-the drop highlight flicker; and the crop keyboard model — per-pixel arrows, 10×
-with Shift, Alt-resize holding the aspect ratio, and clamping at the edges.
+**Components and integration (47):** that an editing session writes nothing to
+disk and that a draft from an older version is cleared on mount; import error,
+busy, and drag-affordance states, including the enter/leave pairing that used to
+make the drop highlight flicker; and the crop keyboard model — per-pixel arrows,
+10× with Shift, Alt-resize holding the aspect ratio, and clamping at the edges.
 
 Honest scope: the WebGL renderer, the shaders, and the decode paths still have
 **no automated coverage**, because they need a real GPU and real image data.
@@ -396,7 +394,7 @@ requests outside `/icons/`.
 app/lib/render/     WebGL2 renderer, GLSL shaders, Canvas2D fallback, DPR heuristics
 app/lib/image/      decode + HEIC worker bridge, mat3 geometry, crop maths
 app/lib/editor/     reducer, context, types, defaults
-app/lib/storage/    IndexedDB draft persistence
+app/lib/storage/    one-shot purge of the retired IndexedDB draft store
 app/workers/        libheif WASM decode worker, OffscreenCanvas export worker
 app/components/     editor UI (viewport, panels, sheets, toolbar), consent banner
 app/privacy/        privacy policy, with the withdrawal control on the page

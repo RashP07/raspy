@@ -1,115 +1,39 @@
-import type { ProjectState } from "../editor/types";
+/**
+ * Cleanup for the draft store Raspy used to keep.
+ *
+ * Autosave wrote the original file plus its adjustments to IndexedDB so a
+ * closed tab could be picked back up. That feature is gone, which leaves the
+ * photos it already wrote sitting on disk with nothing in the app able to
+ * reach them — the worst of both halves for an editor whose whole claim is
+ * that pictures stay on your device and under your control. So the database
+ * goes too, on the next visit after the update.
+ */
 
 const DB_NAME = "raspy";
-const DB_VERSION = 1;
-const STORE = "draft";
-const DRAFT_KEY = "active";
 
-export interface StoredDraft {
-  schemaVersion: 1;
-  id: string;
-  source: {
-    name: string;
-    mimeType: string;
-    width: number;
-    height: number;
-    blob: Blob;
-  };
-  adjustments: ProjectState["adjustments"];
-  crop: ProjectState["crop"];
-  updatedAt: number;
-}
-
-function openDb(): Promise<IDBDatabase> {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onerror = () =>
-      reject(request.error ?? new Error("idb open failed"));
-    request.onupgradeneeded = () => {
-      const db = request.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        db.createObjectStore(STORE);
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-  });
-}
-
-function req<T>(request: IDBRequest<T>): Promise<T> {
-  return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () =>
-      reject(request.error ?? new Error("idb request failed"));
-  });
-}
-
-export async function saveDraft(project: ProjectState): Promise<void> {
-  const db = await openDb();
-  try {
-    const tx = db.transaction(STORE, "readwrite");
-    const store = tx.objectStore(STORE);
-    const draft: StoredDraft = {
-      schemaVersion: 1,
-      id: project.id,
-      source: {
-        name: project.source.name,
-        mimeType: project.source.mimeType,
-        width: project.source.width,
-        height: project.source.height,
-        blob: project.source.blob,
-      },
-      adjustments: { ...project.adjustments },
-      crop: {
-        ...project.crop,
-        bounds: { ...project.crop.bounds },
-      },
-      updatedAt: project.updatedAt,
-    };
-    await req(store.put(draft, DRAFT_KEY));
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error("idb tx failed"));
-    });
-  } finally {
-    db.close();
-  }
-}
-
-export async function loadDraft(): Promise<ProjectState | null> {
-  const db = await openDb();
-  try {
-    const tx = db.transaction(STORE, "readonly");
-    const store = tx.objectStore(STORE);
-    const draft = await req(store.get(DRAFT_KEY));
-    if (!draft || draft.schemaVersion !== 1) return null;
-    return draft as ProjectState;
-  } finally {
-    db.close();
-  }
-}
-
-export async function clearDraft(): Promise<void> {
-  const db = await openDb();
-  try {
-    const tx = db.transaction(STORE, "readwrite");
-    const store = tx.objectStore(STORE);
-    await req(store.delete(DRAFT_KEY));
-    await new Promise<void>((resolve, reject) => {
-      tx.oncomplete = () => resolve();
-      tx.onerror = () => reject(tx.error ?? new Error("idb tx failed"));
-    });
-  } finally {
-    db.close();
-  }
-}
-
-export async function requestPersistentStorage(): Promise<boolean> {
-  try {
-    if (navigator.storage?.persist) {
-      return await navigator.storage.persist();
+/**
+ * Drops the draft database if one is still there.
+ *
+ * Resolves rather than rejects on every failure path, including `blocked`,
+ * which fires when another tab still holds the database open. Nothing depends
+ * on the delete having happened — the next visit tries again — so a version
+ * of this that could hang or throw would only be a way to break startup.
+ */
+export function purgeStoredDraft(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof indexedDB === "undefined") {
+      resolve();
+      return;
     }
-  } catch {
-    // ignore
-  }
-  return false;
+    try {
+      const request = indexedDB.deleteDatabase(DB_NAME);
+      request.onsuccess = () => resolve();
+      request.onerror = () => resolve();
+      // Another tab has it open. It will be deleted when that tab lets go;
+      // either way this one is done waiting.
+      request.onblocked = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
 }

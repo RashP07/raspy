@@ -157,7 +157,6 @@ export interface EditorUiState {
   comparing: boolean;
   exportOpen: boolean;
   hasWebGL: boolean;
-  draftRestored: boolean;
   storageWarning: EditorNotice | null;
   busy: string | null;
   rendererStatus: "idle" | "loading" | "ready" | "recovering" | "error";

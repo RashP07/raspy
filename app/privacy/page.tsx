@@ -24,7 +24,7 @@ export const metadata: Metadata = {
 const GA_SESSION_COOKIE = `_ga_${GA_MEASUREMENT_ID.replace(/^G-/, "")}`;
 
 const CONTACT = "rashmitaparmanik9876@gmail.com";
-const UPDATED = "16 August 2026";
+const UPDATED = "23 August 2026";
 
 function Section({
   title,
@@ -70,11 +70,12 @@ export default function PrivacyPage() {
             including to analytics.
           </p>
           <p className="text-body leading-normal text-muted">
-            One draft — the original file plus your adjustments — is stored on
-            your own machine in IndexedDB so that closing the tab does not lose
-            your work. It stays there until you clear it, open a different
-            photo, or clear your browser data. The offline cache is written so
-            that image data can never enter it.
+            Nothing is written to disk. The photo you are editing lives in
+            memory for as long as its tab is open and is gone the moment you
+            close it — which does mean a closed tab loses the edit. Earlier
+            versions kept one draft in IndexedDB; that store is deleted the
+            next time you open Raspy. The offline cache is written so that
+            image data can never enter it.
           </p>
           <p className="text-body leading-normal text-muted">
             Exports are re-encoded from raw canvas pixels, which drops EXIF and

@@ -15,20 +15,10 @@ const FORMATS = "HEIC · JPEG · PNG · WebP";
 export interface ImportScreenProps {
   onImport: (file: File) => void | Promise<void>;
   busy?: string | null;
-  hasDraft?: boolean;
-  draftRestored?: boolean;
-  onRestoreDraft?: () => void;
   error?: string | null;
 }
 
-export function ImportScreen({
-  onImport,
-  busy,
-  hasDraft = false,
-  draftRestored = false,
-  onRestoreDraft,
-  error,
-}: ImportScreenProps) {
+export function ImportScreen({ onImport, busy, error }: ImportScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   // A drag crossing a child element fires enter/leave in pairs; counting keeps
@@ -136,17 +126,6 @@ export function ImportScreen({
             </Button>
           )}
 
-          {hasDraft && onRestoreDraft && !isBusy ? (
-            <Button
-              variant="ghost"
-              size="md"
-              className="w-full rounded-control text-muted hover:text-fg"
-              onClick={onRestoreDraft}
-            >
-              Continue last edit
-            </Button>
-          ) : null}
-
           <p className="text-center text-caption text-muted">
             {FORMATS}
             <span className="hidden md:inline">
@@ -154,12 +133,6 @@ export function ImportScreen({
               · or drop a photo anywhere
             </span>
           </p>
-
-          {draftRestored ? (
-            <p className="text-center text-caption text-muted">
-              Last edit restored from this device
-            </p>
-          ) : null}
 
           {/* The claim in the headline should be checkable from the screen
               that makes it, not only from inside Settings. */}

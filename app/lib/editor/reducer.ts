@@ -29,7 +29,7 @@ export interface EditorState {
 }
 
 export type EditorAction =
-  | { type: "LOAD_PROJECT"; project: ProjectState; restored?: boolean }
+  | { type: "LOAD_PROJECT"; project: ProjectState }
   | { type: "CLEAR_PROJECT" }
   | { type: "SET_MODE"; mode: EditorMode }
   | { type: "SET_ACTIVE_ADJUSTMENT"; key: AdjustmentKey }
@@ -68,7 +68,6 @@ export function createInitialEditorState(): EditorState {
       comparing: false,
       exportOpen: false,
       hasWebGL: true,
-      draftRestored: false,
       storageWarning: null,
       busy: null,
       rendererStatus: "idle",
@@ -137,7 +136,6 @@ export function editorReducer(
         ui: {
           ...createInitialEditorState().ui,
           hasWebGL: state.ui.hasWebGL,
-          draftRestored: Boolean(action.restored),
           storageWarning: state.ui.storageWarning,
         },
       };
