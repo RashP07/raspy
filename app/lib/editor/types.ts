@@ -34,7 +34,17 @@ export interface AdjustmentState {
 }
 
 export type AspectRatio =
-  "free" | "original" | "1:1" | "4:3" | "3:4" | "3:2" | "2:3" | "16:9" | "9:16";
+  | "free"
+  | "original"
+  | "1:1"
+  | "4:3"
+  | "3:4"
+  | "4:5"
+  | "5:4"
+  | "3:2"
+  | "2:3"
+  | "16:9"
+  | "9:16";
 
 export interface CropState {
   bounds: { x: number; y: number; width: number; height: number };

@@ -113,6 +113,29 @@ export function bandRowsFor(width: number): number {
 }
 
 /**
+ * Long edge to decode the source photo at for an export.
+ *
+ * The source only has to out-resolve the output it is being sampled into, and
+ * a crop makes the output cover a fraction of it. Decoding the whole file at
+ * full resolution costs 4 bytes per source pixel — around 190 MB for a 48
+ * megapixel phone photo — at the moment the export is already holding a
+ * drawing buffer, and that is the allocation an Android renderer dies on.
+ *
+ * The floor on the crop fraction keeps a very tight crop from asking for a
+ * decode larger than the file has pixels to give.
+ */
+export function sourceDecodeLongEdge(
+  output: { width: number; height: number },
+  crop: { bounds: { width: number; height: number } },
+): number {
+  const fraction = Math.max(
+    0.05,
+    Math.min(crop.bounds.width || 1, crop.bounds.height || 1),
+  );
+  return Math.ceil(Math.max(output.width, output.height) / fraction);
+}
+
+/**
  * Why an export came out smaller than asked for, in one sentence.
  *
  * "This device can't render a larger image" was the old line, and it told

@@ -5,14 +5,15 @@ import { ConsentControl } from "@/app/components/privacy/ConsentControl";
 import { GA_MEASUREMENT_ID } from "@/app/lib/analytics";
 
 export const metadata: Metadata = {
-  title: "Raspy — privacy",
+  title: "Privacy",
   description:
     "What Raspy stores, what it does not, and how to withdraw analytics consent.",
+  alternates: { canonical: "/privacy" },
   openGraph: {
     type: "article",
     url: "/privacy",
     siteName: "Raspy",
-    title: "Raspy — privacy",
+    title: "Privacy | Raspy",
     description:
       "Your photos never leave your device. The only third party is analytics, and you can turn it off.",
   },

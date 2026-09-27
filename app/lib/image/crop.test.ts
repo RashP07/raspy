@@ -6,6 +6,7 @@ import {
   normalizeBounds,
   nextRotation,
   outputCropDimensions,
+  rotateAspect,
 } from "./crop";
 import { createDefaultCrop } from "../editor/defaults";
 
@@ -13,6 +14,8 @@ describe("crop geometry", () => {
   it("locks aspect ratios", () => {
     expect(aspectValue("1:1", 100, 50)).toBe(1);
     expect(aspectValue("16:9", 100, 50)).toBeCloseTo(16 / 9);
+    expect(aspectValue("4:5", 100, 50)).toBeCloseTo(4 / 5);
+    expect(aspectValue("5:4", 100, 50)).toBeCloseTo(5 / 4);
     expect(aspectValue("original", 200, 100)).toBe(2);
     expect(aspectValue("free", 100, 50)).toBeNull();
   });
@@ -48,6 +51,8 @@ describe("crop geometry", () => {
     expect(clampStraighten(-90)).toBe(-45);
     expect(nextRotation(0)).toBe(90);
     expect(nextRotation(270)).toBe(0);
+    expect(rotateAspect("4:5")).toBe("5:4");
+    expect(rotateAspect("5:4")).toBe("4:5");
   });
 
   it("computes output dimensions with rotation", () => {

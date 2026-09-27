@@ -1,0 +1,9 @@
+# Content-hashed build output. vinext writes this same rule when no
+# _headers file exists; keeping it here means adding the fonts rule does not
+# lose it.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Versioned by filename (geist-latin-v2.woff2), so a new cut is a new URL.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

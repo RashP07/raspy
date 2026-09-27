@@ -21,6 +21,10 @@ export function aspectValue(
       return 4 / 3;
     case "3:4":
       return 3 / 4;
+    case "4:5":
+      return 4 / 5;
+    case "5:4":
+      return 5 / 4;
     case "3:2":
       return 3 / 2;
     case "2:3":
@@ -38,6 +42,10 @@ export function rotateAspect(aspect: AspectRatio): AspectRatio {
       return "3:4";
     case "3:4":
       return "4:3";
+    case "4:5":
+      return "5:4";
+    case "5:4":
+      return "4:5";
     case "3:2":
       return "2:3";
     case "2:3":

@@ -16,7 +16,11 @@ import { drawSourceWithGeometry } from "./canvasDraw";
 import { displayScale } from "./displayScale";
 import { encodeCanvas } from "./encode";
 import { ExportError, isRetryableExportFailure } from "./exportError";
-import { exportAttemptLadder, exportMemoryCap } from "./exportLimits";
+import {
+  exportAttemptLadder,
+  exportMemoryCap,
+  sourceDecodeLongEdge,
+} from "./exportLimits";
 
 /**
  * Canvas 2D fallback: crop/orientation/export only. Adjustments are no-ops.
@@ -166,10 +170,14 @@ export class Canvas2DPhotoRenderer implements PhotoRenderer {
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(0, 0, width, height);
     }
+    // Sized to what this export samples, not to what the file holds: the 2D
+    // path is what a phone without WebGL2 falls back to, and a full-resolution
+    // decode is the largest single allocation a save makes.
     const bitmap = await createPreviewBitmap(
       this.sourceBlob ?? project.source.blob,
-      1e9,
+      sourceDecodeLongEdge({ width, height }, project.crop),
       project.source.mimeType,
+      { width: project.source.width, height: project.source.height },
     );
     const geometry = computeRenderGeometry({
       sourceWidth: project.source.width,

@@ -24,6 +24,7 @@ const PRIMARY_ASPECTS: { value: AspectRatio; label: string }[] = [
   { value: "free", label: "Free" },
   { value: "original", label: "Original" },
   { value: "1:1", label: "1:1" },
+  { value: "4:5", label: "4:5" },
   { value: "4:3", label: "4:3" },
   { value: "16:9", label: "16:9" },
 ];

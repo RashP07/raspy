@@ -242,6 +242,56 @@ function loadHtmlImage(file: Blob): Promise<HTMLImageElement> {
 }
 
 /**
+ * One-step decode-and-downscale, or null if this browser or this file will not
+ * do it. Only one dimension is passed: the spec preserves aspect ratio from a
+ * single side, so an EXIF rotation that swaps the axes comes back capped on
+ * the wrong edge rather than stretched, and {@link resizeBitmap} finishes it.
+ */
+async function decodeAtSize(
+  source: Blob,
+  maxLongEdge: number,
+  size?: { width: number; height: number },
+): Promise<ImageBitmap | HTMLImageElement | null> {
+  if (typeof createImageBitmap !== "function") return null;
+  if (!size || !size.width || !size.height) return null;
+  const longEdge = Math.max(size.width, size.height);
+  if (longEdge <= maxLongEdge) return null;
+
+  const scale = maxLongEdge / longEdge;
+  const options: ImageBitmapOptions & { resizeQuality: "high" } =
+    size.width >= size.height
+      ? {
+          resizeWidth: Math.max(1, Math.round(size.width * scale)),
+          resizeQuality: "high",
+        }
+      : {
+          resizeHeight: Math.max(1, Math.round(size.height * scale)),
+          resizeQuality: "high",
+        };
+
+  let bitmap: ImageBitmap;
+  try {
+    bitmap = await createImageBitmap(source, {
+      imageOrientation: "from-image",
+      ...options,
+    } as ImageBitmapOptions);
+  } catch {
+    try {
+      bitmap = await createImageBitmap(source, options as ImageBitmapOptions);
+    } catch {
+      // HEIC, a browser that ignores resize options on a Blob decode, or a
+      // decoder that ran out of room. The unscaled path is still there.
+      return null;
+    }
+  }
+
+  if (Math.max(bitmap.width, bitmap.height) <= maxLongEdge) return bitmap;
+  // An EXIF rotation put the long edge on the axis we did not cap. One more
+  // pass, over a bitmap that is already a fraction of the file.
+  return resizeBitmap(bitmap, maxLongEdge);
+}
+
+/**
  * `mimeTypeHint` is the type import sniffed out of the bytes. A blob picked
  * from a photo library often carries no type at all, and without the hint a
  * HEIC re-decode at save time never reaches the libheif fallback — it falls
@@ -252,9 +302,19 @@ export async function createPreviewBitmap(
   source: Blob,
   maxLongEdge = PREVIEW_LONG_EDGE,
   mimeTypeHint?: string,
+  sourceSize?: { width: number; height: number },
 ): Promise<ImageBitmap | HTMLImageElement> {
   let full: ImageBitmap | HTMLImageElement | undefined;
   const heic = isHeicMime(source.type) || isHeicMime(mimeTypeHint ?? "");
+
+  // Decode straight to the size we need, when we already know the size we are
+  // decoding. Going through a full-resolution bitmap first costs 4 bytes per
+  // source pixel — 190 MB for a 48 megapixel phone photo — and then asks for
+  // the downscaled copy on top of it, at the one moment an export is already
+  // holding a drawing buffer and an encoder. Android renderers are killed for
+  // less. The decoder can scale as it goes, so ask it to.
+  const shrunk = await decodeAtSize(source, maxLongEdge, sourceSize);
+  if (shrunk) return shrunk;
 
   if (typeof createImageBitmap === "function") {
     try {

@@ -1,52 +1,55 @@
 import type { Metadata, Viewport } from "next";
-import { Geist } from "next/font/google";
 import { ConsentBanner } from "./components/ConsentBanner";
 import { GA_ENABLED, GA_INIT_SCRIPT } from "./lib/analytics";
 import { CONSENT_INIT_SCRIPT } from "./lib/consent";
+import { SITE_URL } from "./lib/site";
 import { THEME_COLORS, THEME_INIT_SCRIPT } from "./lib/theme";
 import "./globals.css";
 
-// No `weight`: that pulls the variable font, so every weight the UI uses comes
-// from one file instead of three static cuts.
-const geist = Geist({
-  subsets: ["latin"],
-  variable: "--font-geist",
-  display: "swap",
-});
+/** Declared in globals.css. One latin file, preloaded below; next/font/google
+ *  preloaded all five Google subsets and they shared bandwidth with the
+ *  stylesheet on every first visit. */
+const GEIST_LATIN = "/fonts/geist-latin-v2.woff2";
+
+const HOME_TITLE = "Raspy: free online photo editor that never uploads your photos";
+const HOME_DESCRIPTION =
+  "Edit photos in your browser with the iPhone Photos tools: exposure, highlights, shadows, crop, straighten and more. Opens HEIC on any device. No account, no upload, free.";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://raspy.rashmitaparmanik.com"),
-  title: "Raspy — private photo editor",
-  description: "Photos and edits never leave this device.",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: HOME_TITLE,
+    template: "%s | Raspy",
+  },
+  description: HOME_DESCRIPTION,
   applicationName: "Raspy",
+  alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     url: "/",
     siteName: "Raspy",
-    title: "Raspy — private photo editor",
-    description:
-      "A local-first photo editor in the browser. No account, no upload, nothing to delete later.",
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
     images: [
       {
         url: "/og.png",
         width: 1200,
         height: 630,
         type: "image/png",
-        alt: "Raspy — edit photos that never leave your device.",
+        alt: "Raspy: edit photos that never leave your device.",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Raspy — private photo editor",
-    description:
-      "A local-first photo editor in the browser. No account, no upload, nothing to delete later.",
+    title: HOME_TITLE,
+    description: HOME_DESCRIPTION,
     images: ["/og.png"],
   },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Raspy — private photo editor",
+    title: "Raspy",
   },
   formatDetection: {
     telephone: false,
@@ -82,10 +85,17 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={geist.variable} suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
         {/* Must run before first paint, or a stored override flashes light. */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        <link
+          rel="preload"
+          href={GEIST_LATIN}
+          as="font"
+          type="font/woff2"
+          crossOrigin="anonymous"
+        />
         <meta name="apple-mobile-web-app-capable" content="yes" />
         <meta name="apple-mobile-web-app-status-bar-style" content="default" />
         <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />

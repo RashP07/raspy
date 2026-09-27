@@ -7,6 +7,7 @@ import {
   exportMemoryCapFor,
   exportPixelBudget,
   supportsBandedExport,
+  sourceDecodeLongEdge,
   MIN_EXPORT_LONG_EDGE,
 } from "./exportLimits";
 import { constrainExportDimensions } from "@/app/lib/image/geometry";
@@ -183,5 +184,29 @@ describe("exportAttemptLadder", () => {
         MIN_EXPORT_LONG_EDGE,
       );
     }
+  });
+});
+
+describe("sourceDecodeLongEdge", () => {
+  const whole = { bounds: { x: 0, y: 0, width: 1, height: 1 } };
+
+  it("asks for no more of the source than the output uses", () => {
+    expect(sourceDecodeLongEdge({ width: 4000, height: 3000 }, whole)).toBe(
+      4000,
+    );
+  });
+
+  it("scales up with the crop, because a crop covers less of the source", () => {
+    const crop = { bounds: { x: 0.25, y: 0.25, width: 0.5, height: 0.5 } };
+    expect(sourceDecodeLongEdge({ width: 2000, height: 2000 }, crop)).toBe(
+      4000,
+    );
+  });
+
+  it("stops a sliver crop from demanding an unbounded decode", () => {
+    const sliver = { bounds: { x: 0, y: 0, width: 0.001, height: 0.001 } };
+    expect(sourceDecodeLongEdge({ width: 1000, height: 1000 }, sliver)).toBe(
+      20_000,
+    );
   });
 });

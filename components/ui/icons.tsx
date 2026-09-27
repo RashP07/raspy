@@ -38,18 +38,9 @@ import { ThermometerIcon } from "@phosphor-icons/react/dist/csr/Thermometer";
 import { VignetteIcon as PhVignetteIcon } from "@phosphor-icons/react/dist/csr/Vignette";
 import { WavesIcon } from "@phosphor-icons/react/dist/csr/Waves";
 import { XIcon as PhXIcon } from "@phosphor-icons/react/dist/csr/X";
-import { IconContext } from "@phosphor-icons/react/dist/lib/context";
-import type { ReactNode } from "react";
 import type { AdjustmentKey } from "@/app/lib/editor/types";
 
-/** One place to change weight or default size for every icon in the app. */
-export function IconProvider({ children }: { children: ReactNode }) {
-  return (
-    <IconContext.Provider value={{ weight: "duotone", size: 20 }}>
-      {children}
-    </IconContext.Provider>
-  );
-}
+export { IconProvider } from "./icon-context";
 
 // Editor chrome
 export const UndoIcon = ArrowUUpLeftIcon;

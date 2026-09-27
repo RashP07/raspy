@@ -1,139 +1,54 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  lazy,
+  Suspense,
+  useCallback,
+  useEffect,
+  useState,
+  type ReactNode,
+} from "react";
 import { ToastProvider, useToast } from "@/components/ui/toast";
-import { playConfirm, unlockTickAudio } from "@/app/lib/audio/tick";
-import { IconProvider } from "@/components/ui/icons";
+import { Spinner } from "@/components/ui/spinner";
+import { unlockTickAudio } from "@/app/lib/audio/tick";
+import { IconProvider } from "@/components/ui/icon-context";
 import { EditorProvider, useEditor } from "@/app/lib/editor/context";
-import type {
-  ExportOptions,
-  ExportResult,
-  SaveDelivery,
-} from "@/app/lib/editor/types";
 import { ImportError } from "@/app/lib/image/decode";
-import { describeExportFailure } from "@/app/lib/render/exportError";
-import { EditorShell } from "./EditorShell";
 import { ImportScreen } from "./ImportScreen";
-import { usePhotoExport, useRenderer } from "./useRenderer";
 
-type SaveOutcome = "shared" | "downloaded" | "cancelled";
-
-/**
- * Hands the finished file over the way the person asked for.
- *
- * Sharing is only attempted when it was chosen: a device with a share sheet
- * used to get one whether or not it wanted one, which on Android left no way
- * to put the file in Downloads. A share that fails for any reason other than
- * being dismissed still falls through to the download — the file exists, and
- * losing it to a platform error helps nobody.
- */
-async function deliverFile(
-  blob: Blob,
-  filename: string,
-  mimeType: string,
-  delivery: SaveDelivery,
-): Promise<SaveOutcome> {
-  if (delivery === "share") {
-    const file = new File([blob], filename, { type: mimeType });
-    const canShare =
-      typeof navigator !== "undefined" &&
-      typeof navigator.share === "function" &&
-      (!navigator.canShare || navigator.canShare({ files: [file] }));
-
-    if (canShare) {
-      try {
-        await navigator.share({ files: [file], title: filename });
-        return "shared";
-      } catch (error) {
-        if (error instanceof DOMException && error.name === "AbortError") {
-          return "cancelled";
-        }
-      }
-    }
-  }
-
-  return download(blob, filename);
-}
-
-function download(blob: Blob, filename: string): SaveOutcome {
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-  anchor.href = url;
-  anchor.download = filename;
-  document.body.appendChild(anchor);
-  anchor.click();
-  anchor.remove();
-  // Revoking in the same tick races the download on some Android builds, which
-  // read the blob after the click returns and end up with a 0-byte file.
-  setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  return "downloaded";
-}
-
-function extensionFor(format: ExportOptions["format"]): string {
-  switch (format) {
-    case "image/png":
-      return "png";
-    case "image/webp":
-      return "webp";
-    default:
-      return "jpg";
-  }
-}
-
-function formatLabel(format: ExportOptions["format"]): string {
-  return format === "image/png"
-    ? "PNG"
-    : format === "image/webp"
-      ? "WebP"
-      : "JPEG";
-}
+let editorModule: Promise<typeof import("./LoadedEditor")> | null = null;
 
 /**
- * A sentence for anything the export had to change to succeed. Saying nothing
- * would be the easier code and the worse behaviour: someone who asked for full
- * size deserves to know they did not get it.
+ * Starts fetching the editing chrome and renderer. Idempotent, so it is safe
+ * to call from every gesture that hints a photo is about to be opened.
  */
-function describeExportFallback(
-  result: ExportResult,
-  options: ExportOptions,
-): string | null {
-  const notes: string[] = [];
-  if (result.downscaled) {
-    notes.push(
-      `resized to ${result.width} × ${result.height} px so this device could encode it`,
-    );
-  }
-  if (result.format !== options.format) {
-    notes.push(
-      `saved as ${formatLabel(result.format)} — your browser can't encode ${formatLabel(options.format)}`,
-    );
-  }
-  return notes.length ? notes.join("; ") : null;
+function preloadEditor() {
+  editorModule ??= import("./LoadedEditor");
+  return editorModule;
 }
 
-function EditorAppInner() {
-  const {
-    state,
-    importFile,
-    clearProject,
-    setExportOpen,
-    setBusy,
-    setRendererStatus,
-  } = useEditor();
+const LoadedEditor = lazy(preloadEditor);
+
+function EditorLoading() {
+  return (
+    <div
+      role="status"
+      className="flex h-full w-full items-center justify-center gap-3 bg-bg text-muted"
+    >
+      <Spinner size={20} decorative />
+      <p className="text-body">Opening editor…</p>
+    </div>
+  );
+}
+
+interface EditorAppInnerProps {
+  landing?: ReactNode;
+}
+
+function EditorAppInner({ landing }: EditorAppInnerProps) {
+  const { state, importFile, clearProject } = useEditor();
   const { showToast } = useToast();
   const [importError, setImportError] = useState<string | null>(null);
-  const [exportProgress, setExportProgress] = useState<number | null>(null);
-  const [exportCancelling, setExportCancelling] = useState(false);
-  const abortRef = useRef<AbortController | null>(null);
-  const [viewTransform, setViewTransform] = useState({
-    zoom: 1,
-    panX: 0,
-    panY: 0,
-  });
-  const resetViewTransform = useCallback(
-    () => setViewTransform({ zoom: 1, panX: 0, panY: 0 }),
-    [],
-  );
 
   // Mobile browsers start every AudioContext suspended and only let it resume
   // inside a gesture. The individual controls unlock on their own handlers,
@@ -155,22 +70,46 @@ function EditorAppInner() {
     };
   }, []);
 
-  const { canvasRef, canvasKey, exportPhoto, getExportDimensions } =
-    useRenderer(
-      state.project,
-      state.ui.comparing,
-      state.ui.mode,
-      viewTransform,
-      setRendererStatus,
-    );
-  const runExport = usePhotoExport(exportPhoto);
+  // The editor chunk is not on the first-paint path, but nobody should wait
+  // for it after picking a photo either. Fetch it once the page has settled,
+  // unless the connection asked for less.
+  useEffect(() => {
+    const connection = (
+      navigator as Navigator & { connection?: { saveData?: boolean } }
+    ).connection;
+    if (connection?.saveData) return;
+    let idleHandle: number | null = null;
+    let timerHandle: number | null = null;
+    // Not before the load event: on a slow connection the chunk would share
+    // bandwidth with the stylesheet and font the first paint is waiting on.
+    // Safari has no requestIdleCallback; a short timer is close enough there.
+    const whenIdle = () => {
+      if (typeof window.requestIdleCallback === "function") {
+        idleHandle = window.requestIdleCallback(() => void preloadEditor(), {
+          timeout: 4000,
+        });
+      } else {
+        timerHandle = window.setTimeout(() => void preloadEditor(), 2000);
+      }
+    };
+    if (document.readyState === "complete") {
+      whenIdle();
+    } else {
+      window.addEventListener("load", whenIdle, { once: true });
+    }
+    return () => {
+      window.removeEventListener("load", whenIdle);
+      if (idleHandle !== null) window.cancelIdleCallback(idleHandle);
+      if (timerHandle !== null) window.clearTimeout(timerHandle);
+    };
+  }, []);
 
   const handleImport = useCallback(
     async (file: File) => {
       setImportError(null);
+      void preloadEditor();
       try {
         await importFile(file);
-        resetViewTransform();
       } catch (error) {
         const message =
           error instanceof ImportError
@@ -185,91 +124,13 @@ function EditorAppInner() {
         });
       }
     },
-    [importFile, resetViewTransform, showToast],
+    [importFile, showToast],
   );
-
-  const handleExport = useCallback(
-    async (options: ExportOptions, delivery: SaveDelivery) => {
-      if (!state.project) return;
-      // Still inside the click that started the export: the only moment a
-      // suspended context is allowed to resume, and the confirmation lands
-      // long after any gesture of its own.
-      unlockTickAudio();
-      const controller = new AbortController();
-      abortRef.current = controller;
-      setExportProgress(0);
-      setExportCancelling(false);
-      setBusy("Saving…");
-      try {
-        const result = await runExport(options, controller.signal, (progress) =>
-          setExportProgress(progress),
-        );
-        const base =
-          state.project.source.name.replace(/\.[^.]+$/, "") || "raspy";
-        // Named from what was produced, not what was requested: the export can
-        // fall back to a format the browser supports or to a smaller size.
-        const filename = `${base}-edit.${extensionFor(result.format)}`;
-        const outcome = await deliverFile(
-          result.blob,
-          filename,
-          result.format,
-          delivery,
-        );
-        if (outcome === "cancelled") {
-          showToast({ title: "Save cancelled", status: "neutral" });
-        } else {
-          // Only a real save gets the flourish — a cancelled share is not a
-          // success, however far the export got.
-          playConfirm();
-          const fallback = describeExportFallback(result, options);
-          showToast({
-            title: outcome === "shared" ? "Shared" : "Saved",
-            description: fallback
-              ? `${outcome === "shared" ? filename : `Saved as ${filename}`} — ${fallback}`
-              : outcome === "shared"
-                ? filename
-                : `Saved as ${filename}`,
-            status: "success",
-            // A silent downgrade should be readable, not glimpsed.
-            timeout: fallback ? 8000 : undefined,
-          });
-        }
-        setExportOpen(false);
-      } catch (error) {
-        if (controller.signal.aborted) {
-          showToast({ title: "Save cancelled", status: "neutral" });
-        } else {
-          // Renderer failures carry internals like raw shader logs; log those
-          // and show the actionable message the export attached.
-          console.error("Save failed", error);
-          const { title, description } = describeExportFailure(error);
-          showToast({
-            title,
-            description,
-            status: "error",
-            timeout: 0,
-          });
-        }
-      } finally {
-        abortRef.current = null;
-        setExportProgress(null);
-        setExportCancelling(false);
-        setBusy(null);
-      }
-    },
-    [runExport, setBusy, setExportOpen, showToast, state.project],
-  );
-
-  const handleCancelExport = useCallback(() => {
-    setExportCancelling(true);
-    abortRef.current?.abort();
-  }, []);
 
   const handleNewPhoto = useCallback(() => {
     void clearProject();
     setImportError(null);
-    resetViewTransform();
-  }, [clearProject, resetViewTransform]);
+  }, [clearProject]);
 
   useEffect(() => {
     if (state.ui.storageWarning) {
@@ -281,43 +142,49 @@ function EditorAppInner() {
     }
   }, [state.ui.storageWarning, showToast]);
 
-  return (
-    <>
-      <div className="se-app-shell">
-        <div className="se-stage">
-          {!state.project ? (
+  if (!state.project) {
+    return (
+      <>
+        <div id="top" className="se-app-shell">
+          <div className="se-stage">
             <ImportScreen
               onImport={handleImport}
+              onOpenIntent={preloadEditor}
               busy={state.ui.busy}
               error={importError}
             />
-          ) : (
-            <EditorShell
-              canvasRef={canvasRef}
-              canvasKey={canvasKey}
-              onExport={handleExport}
-              exportProgress={exportProgress}
-              exportCancelling={exportCancelling}
-              onCancelExport={handleCancelExport}
-              onNewPhoto={handleNewPhoto}
-              viewTransform={viewTransform}
-              onViewTransformChange={setViewTransform}
-              onViewTransformReset={resetViewTransform}
-              getExportDimensions={getExportDimensions}
-            />
-          )}
+          </div>
         </div>
+        {landing}
+      </>
+    );
+  }
+
+  return (
+    <div className="se-app-shell se-app-shell--locked">
+      <div className="se-stage">
+        <Suspense fallback={<EditorLoading />}>
+          <LoadedEditor onNewPhoto={handleNewPhoto} />
+        </Suspense>
       </div>
-    </>
+    </div>
   );
 }
 
-export function EditorApp() {
+export interface EditorAppProps {
+  /**
+   * Server-rendered content shown under the import screen while no photo is
+   * open. Passed in rather than imported so it never enters the client bundle.
+   */
+  landing?: ReactNode;
+}
+
+export function EditorApp({ landing }: EditorAppProps) {
   return (
     <EditorProvider>
       <IconProvider>
         <ToastProvider>
-          <EditorAppInner />
+          <EditorAppInner landing={landing} />
         </ToastProvider>
       </IconProvider>
     </EditorProvider>

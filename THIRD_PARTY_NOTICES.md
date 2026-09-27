@@ -10,3 +10,10 @@ unmodified bundled form.
 
 The fallback is loaded only when the browser's native image decoder cannot
 open an imported HEIC/HEIF file.
+
+Raspy self-hosts the latin subset of the Geist variable font, with the
+weight axis limited to 400 to 700, at `public/fonts/geist-latin-v2.woff2`.
+Geist is by Vercel and is licensed under the SIL Open Font License 1.1.
+
+- Project: https://github.com/vercel/geist-font
+- License: https://openfontlicense.org

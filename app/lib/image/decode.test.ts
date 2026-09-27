@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { decodeImageSource, ImportError } from "./decode";
+import { createPreviewBitmap, decodeImageSource, ImportError } from "./decode";
 
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
@@ -90,5 +90,78 @@ describe("decodeImageSource", () => {
     const file = revocableFile();
     file.revoke();
     await expect(decodeImageSource(file)).rejects.toBeInstanceOf(ImportError);
+  });
+});
+
+describe("createPreviewBitmap", () => {
+  it("decodes at the size it needs when the size is known", async () => {
+    const asked: ImageBitmapOptions[] = [];
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async (_source: Blob, options?: ImageBitmapOptions) => {
+        asked.push(options ?? {});
+        const width = options?.resizeWidth ?? 8000;
+        return { width, height: Math.round(width * 0.75), close() {} };
+      }),
+    );
+
+    const bitmap = await createPreviewBitmap(
+      new Blob([pngBytes()], { type: "image/png" }),
+      2000,
+      "image/png",
+      { width: 8000, height: 6000 },
+    );
+
+    // One decode, straight to size: no full-resolution bitmap in between.
+    expect(asked).toHaveLength(1);
+    expect(asked[0].resizeWidth).toBe(2000);
+    expect(asked[0].resizeHeight).toBeUndefined();
+    expect(bitmap.width).toBe(2000);
+  });
+
+  it("caps the long edge on a portrait photo", async () => {
+    const asked: ImageBitmapOptions[] = [];
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async (_source: Blob, options?: ImageBitmapOptions) => {
+        asked.push(options ?? {});
+        const height = options?.resizeHeight ?? 8000;
+        return { width: Math.round(height * 0.75), height, close() {} };
+      }),
+    );
+
+    await createPreviewBitmap(
+      new Blob([pngBytes()], { type: "image/png" }),
+      2000,
+      "image/png",
+      { width: 6000, height: 8000 },
+    );
+
+    expect(asked[0].resizeHeight).toBe(2000);
+    expect(asked[0].resizeWidth).toBeUndefined();
+  });
+
+  it("falls back to the plain decode when the browser refuses to scale", async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      "createImageBitmap",
+      vi.fn(async (_source: Blob, options?: ImageBitmapOptions) => {
+        calls += 1;
+        if (options?.resizeWidth || options?.resizeHeight) {
+          throw new Error("resize options unsupported");
+        }
+        return { width: 800, height: 600, close() {} };
+      }),
+    );
+
+    const bitmap = await createPreviewBitmap(
+      new Blob([pngBytes()], { type: "image/png" }),
+      2000,
+      "image/png",
+      { width: 8000, height: 6000 },
+    );
+
+    expect(calls).toBeGreaterThan(1);
+    expect(bitmap.width).toBe(800);
   });
 });

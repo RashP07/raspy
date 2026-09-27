@@ -1,10 +1,31 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { SettingsMenu } from "./SettingsMenu";
+import { GearGlyph } from "./GearGlyph";
+
+// The menu brings the popover library and every icon in the app with it,
+// none of which the first paint needs. It starts loading on mount and the
+// stand-in below holds its place; the gap is a few hundred milliseconds.
+const SettingsMenu = lazy(() =>
+  import("./SettingsMenu").then((m) => ({ default: m.SettingsMenu })),
+);
+
+function SettingsPlaceholder() {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="se-control text-fg"
+      aria-label="Settings"
+      title="Settings"
+    >
+      <GearGlyph />
+    </Button>
+  );
+}
 
 const ACCEPT =
   "image/jpeg,image/png,image/webp,image/heic,image/heif,.jpg,.jpeg,.png,.webp,.heic,.heif";
@@ -14,11 +35,18 @@ const FORMATS = "HEIC · JPEG · PNG · WebP";
 
 export interface ImportScreenProps {
   onImport: (file: File) => void | Promise<void>;
+  /** Fired on the first gesture towards opening a photo, before a file exists. */
+  onOpenIntent?: () => void;
   busy?: string | null;
   error?: string | null;
 }
 
-export function ImportScreen({ onImport, busy, error }: ImportScreenProps) {
+export function ImportScreen({
+  onImport,
+  onOpenIntent,
+  busy,
+  error,
+}: ImportScreenProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
   // A drag crossing a child element fires enter/leave in pairs; counting keeps
@@ -49,6 +77,7 @@ export function ImportScreen({ onImport, busy, error }: ImportScreenProps) {
         event.preventDefault();
         dragDepth.current += 1;
         if (!isBusy) setDragging(true);
+        onOpenIntent?.();
       }}
       onDragOver={(event) => event.preventDefault()}
       onDragLeave={() => {
@@ -69,7 +98,9 @@ export function ImportScreen({ onImport, busy, error }: ImportScreenProps) {
       <div className="flex w-full min-h-0 flex-1 flex-col">
         <header className="flex shrink-0 items-center justify-between">
           <span className="text-body font-semibold tracking-snug">Raspy</span>
-          <SettingsMenu />
+          <Suspense fallback={<SettingsPlaceholder />}>
+            <SettingsMenu />
+          </Suspense>
         </header>
 
         {/* Anchored to the bottom of its space rather than centred in it: the
@@ -120,7 +151,11 @@ export function ImportScreen({ onImport, busy, error }: ImportScreenProps) {
               variant="primary"
               size="lg"
               className="w-full rounded-control font-medium"
-              onClick={() => inputRef.current?.click()}
+              onPointerDown={() => onOpenIntent?.()}
+              onClick={() => {
+                onOpenIntent?.();
+                inputRef.current?.click();
+              }}
             >
               Open photo
             </Button>
@@ -136,11 +171,20 @@ export function ImportScreen({ onImport, busy, error }: ImportScreenProps) {
 
           {/* The claim in the headline should be checkable from the screen
               that makes it, not only from inside Settings. */}
-          <p className="text-center text-caption text-muted">
-            <Link href="/privacy" className="underline underline-offset-4 hover:text-fg">
+          <nav
+            aria-label="About Raspy"
+            className="flex justify-center gap-4 text-center text-caption text-muted"
+          >
+            <Link href="/privacy" prefetch={false} className="underline underline-offset-4 hover:text-fg">
               Privacy
             </Link>
-          </p>
+            <Link href="/guides" prefetch={false} className="underline underline-offset-4 hover:text-fg">
+              Guides
+            </Link>
+            <Link href="/compare" prefetch={false} className="underline underline-offset-4 hover:text-fg">
+              Compare
+            </Link>
+          </nav>
         </div>
       </div>
 

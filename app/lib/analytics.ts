@@ -20,6 +20,12 @@ export const GA_SRC = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREM
 // would sit *above* the inline consent defaults and could win the race on a
 // warm cache, which is the one ordering the whole scheme depends on. Creating
 // the element after the defaults are queued makes that unconditional.
+//
+// It is also injected late: after the load event and the next idle moment. The
+// tag is 170 KB, more than the app itself, and on a slow connection it was
+// sharing bandwidth with the stylesheet and font the first paint waits on.
+// The config call above it queues in dataLayer regardless, so the page view
+// is still recorded once the tag arrives.
 export const GA_INIT_SCRIPT = `
 gtag('js', new Date());
 gtag('config', '${GA_MEASUREMENT_ID}', {
@@ -27,9 +33,23 @@ gtag('config', '${GA_MEASUREMENT_ID}', {
   allow_ad_personalization_signals: false
 });
 (function () {
-  var tag = document.createElement('script');
-  tag.async = true;
-  tag.src = ${JSON.stringify(GA_SRC)};
-  document.head.appendChild(tag);
+  function inject() {
+    var tag = document.createElement('script');
+    tag.async = true;
+    tag.src = ${JSON.stringify(GA_SRC)};
+    document.head.appendChild(tag);
+  }
+  function whenIdle() {
+    if (typeof requestIdleCallback === 'function') {
+      requestIdleCallback(inject, { timeout: 3000 });
+    } else {
+      setTimeout(inject, 1500);
+    }
+  }
+  if (document.readyState === 'complete') {
+    whenIdle();
+  } else {
+    addEventListener('load', whenIdle, { once: true });
+  }
 })();
 `.trim();

@@ -3,7 +3,10 @@
 import { Toast } from "@base-ui/react/toast";
 import { useCallback, useMemo, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import { CloseIcon } from "./icons";
+// Straight from the package, not the icons barrel: the toast provider mounts
+// on the import screen, and the barrel would put every icon in the app on the
+// first load for the sake of one close glyph.
+import { XIcon as CloseIcon } from "@phosphor-icons/react/dist/csr/X";
 
 export type ToastStatus = "neutral" | "info" | "success" | "error";
 

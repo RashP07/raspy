@@ -25,6 +25,7 @@ import {
   canUseWorkerExport,
   exportAttemptLadder,
   exportMemoryCapFor,
+  sourceDecodeLongEdge,
 } from "./exportLimits";
 
 function compileShader(
@@ -658,7 +659,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     if (signal.aborted) throw abortError();
 
     const bitmap = await abortable(
-      this.decodeForExport(project),
+      this.decodeForExport(project, { width, height }),
       signal,
       closeBitmap,
     );
@@ -786,12 +787,17 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
    */
   private async decodeForExport(
     project: ProjectState,
+    output: { width: number; height: number },
   ): Promise<ImageBitmap | HTMLImageElement> {
     try {
       return await createPreviewBitmap(
         project.source.blob,
-        this.maxTextureSize,
+        Math.min(
+          this.maxTextureSize,
+          sourceDecodeLongEdge(output, project.crop),
+        ),
         project.source.mimeType,
+        { width: project.source.width, height: project.source.height },
       );
     } catch (error) {
       throw new ExportError(
@@ -816,7 +822,7 @@ export class WebGLPhotoRenderer implements PhotoRenderer {
     onProgress: (progress: number) => void,
   ): Promise<EncodedImage> {
     const bitmap = await abortable(
-      this.decodeForExport(project),
+      this.decodeForExport(project, { width, height }),
       signal,
       closeBitmap,
     );

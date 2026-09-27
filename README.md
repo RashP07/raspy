@@ -388,6 +388,37 @@ retouching the PNG:
 The service worker deliberately does not cache it — `sw.js` skips image
 requests outside `/icons/`.
 
+## Site pages, search, and first load
+
+The home page is the editor, with server-rendered content under the import
+screen while no photo is open: what the app does, the adjustment list, the
+privacy design, an FAQ, and links into the guides and comparisons. It is
+passed into `EditorApp` as a `landing` prop from the server component in
+`app/page.tsx`, so none of it enters the client bundle. Once a photo opens,
+the body scroll locks (`body:has(.se-app-shell--locked)`) and the editor takes
+the stage.
+
+Long-form pages live in `app/content/`: one file per guide in `guides/`, one
+per comparison in `compare/`, each exporting a typed object with its slug,
+metadata, dates, and body JSX. `app/guides/[slug]` and `app/compare/[slug]`
+render them inside the shared frame in `app/components/site/SiteChrome.tsx`,
+with `Article` and `BreadcrumbList` JSON-LD. `app/sitemap.ts` and
+`app/robots.ts` are built from the same registries, so a new guide file is
+the whole job of adding a page.
+
+Two decisions keep the first paint light. The editor itself, meaning the
+renderer, shaders, encoders, panels, and the full icon set, is a lazy chunk
+(`LoadedEditor.tsx`) fetched on the first sign of intent to open a photo, and
+otherwise after the load event at idle. The interface font is one self-hosted
+file, `public/fonts/geist-latin-v2.woff2`, the latin subset of Geist with its
+weight axis cut to 400-700, preloaded once; `next/font/google` had been
+preloading all five Google subsets ahead of the stylesheet. A "Geist
+Fallback" face with matched metric overrides means the swap does not reflow.
+
+To measure locally the way Cloudflare serves it, put a gzip proxy in front of
+`vinext start`, which compresses HTML but not static assets, and point
+Lighthouse at the proxy.
+
 ## Architecture map
 
 ```
@@ -395,10 +426,18 @@ app/lib/render/     WebGL2 renderer, GLSL shaders, Canvas2D fallback, DPR heuris
 app/lib/image/      decode + HEIC worker bridge, mat3 geometry, crop maths
 app/lib/editor/     reducer, context, types, defaults
 app/lib/storage/    one-shot purge of the retired IndexedDB draft store
+app/lib/site.ts     site URL, author, and tagline shared by metadata and JSON-LD
 app/workers/        libheif WASM decode worker, OffscreenCanvas export worker
 app/components/     editor UI (viewport, panels, sheets, toolbar), consent banner
+app/components/site landing sections, site header and footer, JSON-LD helper
+app/content/        guides and comparisons as typed content objects
+app/guides/         guide index and article routes
+app/compare/        comparison index and article routes
 app/privacy/        privacy policy, with the withdrawal control on the page
+app/sitemap.ts      sitemap.xml, built from the content registries
+app/robots.ts       robots.txt
 components/ui/      primitives — ruler slider, sheet, toast, popover, switch
+public/fonts/       self-hosted Geist, latin subset
 public/sw.js        app-shell service worker
 ```
 
