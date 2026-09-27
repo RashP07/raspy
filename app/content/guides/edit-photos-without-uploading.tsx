@@ -72,10 +72,10 @@ export const editWithoutUploading: Guide = {
         cannot hold a photo.
       </p>
       <p>
-        The one third party is a visit counter, Google Analytics, which counts
-        page loads and never receives anything about a photo or an edit. It is
-        off by default in the EU, EEA, UK and Switzerland and can be turned
-        off anywhere from Settings. <a href={REPO_URL}>The source is public</a>
+        The only third parties are two visit counters, Google Analytics and
+        PostHog, which count page loads and never receive anything about a
+        photo or an edit. Both are off by default in the EU, EEA, UK and
+        Switzerland and can be turned off anywhere from Settings. <a href={REPO_URL}>The source is public</a>
         , so each of these claims can be checked in the code rather than taken
         on trust.
       </p>

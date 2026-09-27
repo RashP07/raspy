@@ -12,7 +12,7 @@ import {
   ThemeSystemIcon,
 } from "@/components/ui/icons";
 import { playSelect, unlockTickAudio } from "@/app/lib/audio/tick";
-import { GA_ENABLED } from "@/app/lib/analytics";
+import { ANALYTICS_ENABLED } from "@/app/lib/analytics";
 import {
   CONSENT_EVENT,
   CONSENT_STORAGE_KEY,
@@ -188,7 +188,7 @@ export function SettingsMenu() {
           />
         </section>
 
-        {GA_ENABLED ? (
+        {ANALYTICS_ENABLED ? (
           <section className="flex items-center justify-between gap-4">
             <label
               htmlFor="setting-analytics"

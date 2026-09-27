@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ConsentControl } from "@/app/components/privacy/ConsentControl";
-import { GA_MEASUREMENT_ID } from "@/app/lib/analytics";
+import { GA_MEASUREMENT_ID, POSTHOG_TOKEN } from "@/app/lib/analytics";
+import { CONSENT_STORAGE_KEY } from "@/app/lib/consent";
 
 export const metadata: Metadata = {
   title: "Privacy",
@@ -15,7 +16,7 @@ export const metadata: Metadata = {
     siteName: "Raspy",
     title: "Privacy | Raspy",
     description:
-      "Your photos never leave your device. The only third party is analytics, and you can turn it off.",
+      "Your photos never leave your device. The only third parties are analytics, and you can turn them off.",
   },
 };
 
@@ -24,8 +25,12 @@ export const metadata: Metadata = {
  *  single text node rather than splitting it around an interpolation. */
 const GA_SESSION_COOKIE = `_ga_${GA_MEASUREMENT_ID.replace(/^G-/, "")}`;
 
+/** PostHog names its cookie after the project token, the same way. */
+const POSTHOG_COOKIE = `ph_${POSTHOG_TOKEN}_posthog`;
+const POSTHOG_COOKIE_MINIMAL = `${POSTHOG_COOKIE}_cpm`;
+
 const CONTACT = "rashmitaparmanik9876@gmail.com";
-const UPDATED = "23 August 2026";
+const UPDATED = "27 September 2026";
 
 function Section({
   title,
@@ -91,7 +96,7 @@ export default function PrivacyPage() {
             browser&rsquo;s local storage, under the keys{" "}
             <code className="text-label">raspy:theme</code>,{" "}
             <code className="text-label">raspy:sound</code>, and{" "}
-            <code className="text-label">raspy:consent</code>. They are never
+            <code className="text-label">{CONSENT_STORAGE_KEY}</code>. They are never
             sent anywhere and are readable only by this site, on this device.
           </p>
         </Section>
@@ -99,12 +104,13 @@ export default function PrivacyPage() {
         <Section title="Analytics">
           <p className="text-body leading-normal text-muted">
             Raspy counts page visits using Google Analytics 4 (property{" "}
-            <code className="text-label">{GA_MEASUREMENT_ID}</code>), to see
-            whether the project is worth continuing. It measures visits, not
-            use: no photo, edit, crop, or export detail is ever passed to it.
-            Google Signals and advertising personalisation are disabled, and
-            advertising storage is refused in every country. Nothing collected
-            is sold, and none of it is used for advertising.
+            <code className="text-label">{GA_MEASUREMENT_ID}</code>) and
+            PostHog, to see whether the project is worth continuing. Both
+            measure visits, not use: no photo, edit, crop, or export detail is
+            ever passed to either. Google Signals and advertising
+            personalisation are disabled, and advertising storage is refused in
+            every country. Nothing collected is sold, and none of it is used for
+            advertising.
           </p>
           <p className="text-body leading-normal text-muted">
             When analytics is on, Google sets two cookies —{" "}
@@ -117,6 +123,20 @@ export default function PrivacyPage() {
             Analytics. Collected data is retained for 14 months and then
             deleted automatically.
           </p>
+          <p className="text-body leading-normal text-muted">
+            PostHog receives page views and page leaves only. Click tracking,
+            session recording, heatmaps, error reporting, and surveys are all
+            switched off in the code, not merely in a dashboard. Once you
+            accept, PostHog keeps a randomly generated identifier in two
+            cookies,{" "}
+            <code className="text-label break-all">{POSTHOG_COOKIE}</code>{" "}
+            and{" "}
+            <code className="text-label break-all">{POSTHOG_COOKIE_MINIMAL}</code>
+            , and in local storage, readable only by this subdomain. If you have
+            not made a choice, it keeps that identifier in memory instead, so
+            nothing is stored and each visit is counted on its own. PostHog
+            processes your IP address to approximate your location.
+          </p>
         </Section>
 
         <Section title="Consent, and how to withdraw it">
@@ -127,6 +147,13 @@ export default function PrivacyPage() {
             applies whether or not the consent banner appeared for you. Where
             consent applies, the legal basis is your consent under Article 6(1)(a)
             GDPR and the ePrivacy Directive.
+          </p>
+          <p className="text-body leading-normal text-muted">
+            PostHog has no equivalent of Google&rsquo;s IP-based default, so for
+            it the decision is made in your browser: if your timezone is
+            anywhere in Europe and you have not accepted, PostHog is not loaded
+            at all. If you accepted analytics before PostHog was added, you are
+            asked again; if you declined, that decline still stands.
           </p>
           <p className="text-body leading-normal text-muted">
             You can change your mind at any time, here or from Settings inside
@@ -153,12 +180,13 @@ export default function PrivacyPage() {
 
         <Section title="Who processes what, and where">
           <p className="text-body leading-normal text-muted">
-            Google (analytics) and Cloudflare (hosting) are the only third
-            parties, and both may process data outside the EEA, including in the
-            United States. Those transfers rely on the European Commission&rsquo;s
+            Google and PostHog (analytics) and Cloudflare (hosting) are the only
+            third parties, and all three may process data outside the EEA,
+            including in the United States, where PostHog stores this
+            project&rsquo;s data. Those transfers rely on the European Commission&rsquo;s
             standard contractual clauses and the EU&ndash;US Data Privacy
             Framework. There is no other recipient: no database, no object
-            store, no advertising network, and no analytics beyond the one named
+            store, no advertising network, and no analytics beyond the two named
             above.
           </p>
         </Section>
@@ -177,7 +205,7 @@ export default function PrivacyPage() {
             completely. Analytics data is pseudonymous and holds no identifier
             that could be traced back to you, so a request to delete it usually
             cannot be matched to a specific person. Turning analytics off, above,
-            removes the cookie that links your visits together.
+            removes the cookies that link your visits together.
           </p>
         </Section>
 

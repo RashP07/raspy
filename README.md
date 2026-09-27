@@ -23,11 +23,12 @@ The phrase describes how the app is built, not just how it is marketed:
 - **No upload path exists.** Decoding, editing, and encoding all happen in the
   page. There is no endpoint to send a photo to.
 - **No account and no server-side storage.** No database or object store is
-  provisioned; the deployment serves static files only. The one third party is
-  Google Analytics, which counts page visits with Google Signals and ad
-  personalisation disabled, and is gated behind consent in the EU. It never
-  sees a photo, an edit, or an export — nothing about your image is passed to
-  it. See [Analytics and consent](#analytics-and-consent).
+  provisioned; the deployment serves static files only. The only third parties
+  are Google Analytics and PostHog, which count page visits (Google Signals, ad
+  personalisation, autocapture, and session replay all disabled) and are gated
+  behind consent in the EU. Neither sees a photo, an edit, or an export —
+  nothing about your image is passed to them. See
+  [Analytics and consent](#analytics-and-consent).
 - **Exports carry no metadata.** The file is re-encoded from raw canvas pixels,
   so EXIF and GPS are dropped — a shared photo does not carry the location where
   it was taken.
@@ -242,9 +243,10 @@ optimisation.
 
 ## Analytics and consent
 
-Page-view counting via Google Analytics 4, on **Consent Mode v2**, loaded only
-in production builds. No photo, edit, crop, or export detail is ever passed to
-`gtag` — the app measures visits, not use.
+Page-view counting via Google Analytics 4, on **Consent Mode v2**, and PostHog,
+both loaded only in production builds and both following the one stored
+choice. No photo, edit, crop, or export detail is ever passed to either — the
+app measures visits, not use.
 
 The gating rests on two independent mechanisms, which is what lets a static app
 with no server be correct without an IP lookup:
@@ -281,6 +283,35 @@ Two details that are easy to get wrong:
 - **Withdrawal expires the cookies.** Consent Mode stops GA writing new ones but
   does not retract ones already set, so revoking walks every parent domain
   suffix and expires `_ga*`, `_gid`, and `_gat`.
+
+### PostHog
+
+[`app/lib/posthog.ts`](app/lib/posthog.ts) captures page views and page
+leaves, nothing else. It uses PostHog's slim build (`posthog-js/dist/module.slim`,
+~49 KB gzipped against ~100 KB for the default), which leaves autocapture,
+session replay, heatmaps, surveys, and the other extensions out of the bundle
+entirely. Page views on client-side navigation come from `usePathname` in
+`PostHogLoader` rather than the history extension, which the slim build omits.
+Remote config is off too, so a change in the PostHog dashboard cannot switch
+anything on without a deploy.
+
+PostHog has no IP-resolved regional default, so the client decides:
+
+- **Effective consent denied** (declined, or undecided with a European
+  timezone): the SDK is never downloaded.
+- **Undecided elsewhere:** `persistence: "memory"` — counted, but nothing is
+  written to the device.
+- **Accepted:** a first-party cookie scoped to this host
+  (`cross_subdomain_cookie: false`), so consent given to Raspy does not
+  identify the visitor on the portfolio at the parent domain.
+
+The SDK is a dynamic import, fetched after the load event and the next idle
+moment like the Google tag, so it never competes with first paint. Declining
+opts the live instance out and expires its `ph_` cookie and storage entries.
+
+The consent key is versioned (`raspy:consent:v2`). Adding PostHog widened what
+is collected, so, as `/privacy` promises, an acceptance given for Google
+Analytics alone is asked again; a decline under the old key still stands.
 
 Consent is withdrawable from Settings → Analytics or from `/privacy`, one
 toggle either way — the same single interaction that granted it. The banner is a bar rather than a modal: the editor

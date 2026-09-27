@@ -1,6 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import { ConsentBanner } from "./components/ConsentBanner";
-import { GA_ENABLED, GA_INIT_SCRIPT } from "./lib/analytics";
+import { PostHogLoader } from "./components/PostHogLoader";
+import {
+  ANALYTICS_ENABLED,
+  GA_ENABLED,
+  GA_INIT_SCRIPT,
+  POSTHOG_ENABLED,
+} from "./lib/analytics";
 import { CONSENT_INIT_SCRIPT } from "./lib/consent";
 import { SITE_URL } from "./lib/site";
 import { THEME_COLORS, THEME_INIT_SCRIPT } from "./lib/theme";
@@ -102,7 +108,8 @@ export default function RootLayout({
       </head>
       <body className="relative bg-bg text-fg antialiased">
         <div className="root">{children}</div>
-        {GA_ENABLED && <ConsentBanner />}
+        {ANALYTICS_ENABLED && <ConsentBanner />}
+        {POSTHOG_ENABLED && <PostHogLoader />}
         {/* Last, so measurement never delays first paint or the editor. Order
             within the block is load-bearing: the consent defaults must be on
             dataLayer before GA_INIT_SCRIPT injects the Google tag. */}

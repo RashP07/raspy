@@ -17,3 +17,9 @@ Geist is by Vercel and is licensed under the SIL Open Font License 1.1.
 
 - Project: https://github.com/vercel/geist-font
 - License: https://openfontlicense.org
+
+Raspy bundles `posthog-js` for page-view analytics, loaded only after
+consent. `posthog-js` is licensed under Apache-2.0 and MIT.
+
+- Project: https://github.com/PostHog/posthog-js
+- License: https://github.com/PostHog/posthog-js/blob/main/LICENSE

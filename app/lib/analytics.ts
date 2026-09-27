@@ -1,10 +1,22 @@
-// Google Analytics 4. Page-level traffic only — no photo, edit, or export data
-// is ever passed to gtag, which would defeat the point of the app.
+// Google Analytics 4 and PostHog, under one consent choice. Page-level traffic
+// only — no photo, edit, or export data is ever passed to either, which would
+// defeat the point of the app.
 export const GA_MEASUREMENT_ID = "G-SJ63XD3708";
 
 // Only load in production, so local dev doesn't pollute the property.
 export const GA_ENABLED =
   process.env.NODE_ENV === "production" && Boolean(GA_MEASUREMENT_ID);
+
+// PostHog's project token is public by design: it can write events, never read
+// them, exactly like the GA measurement id above. See app/lib/posthog.ts.
+export const POSTHOG_TOKEN = "phc_mQ9BnAswsrtCSW9NrTgYwAdNnyyMTDSuEwS3teT3Dg5J";
+export const POSTHOG_HOST = "https://us.i.posthog.com";
+
+export const POSTHOG_ENABLED =
+  process.env.NODE_ENV === "production" && Boolean(POSTHOG_TOKEN);
+
+/** Either tag being live is what makes the banner and the toggles meaningful. */
+export const ANALYTICS_ENABLED = GA_ENABLED || POSTHOG_ENABLED;
 
 export const GA_SRC = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
 

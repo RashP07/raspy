@@ -98,6 +98,12 @@ describe("CONSENT_INIT_SCRIPT", () => {
     expect(CONSENT_INIT_SCRIPT).toContain("wait_for_update");
     expect(CONSENT_INIT_SCRIPT).toContain(JSON.stringify(CONSENT_STORAGE_KEY));
   });
+
+  it("carries a decline under the old key into the Google tag", () => {
+    expect(CONSENT_INIT_SCRIPT).toContain(
+      `localStorage.getItem("raspy:consent") === 'denied'`,
+    );
+  });
 });
 
 describe("isLikelyEuVisitor", () => {
@@ -142,6 +148,20 @@ describe("effectiveConsent", () => {
     expect(effectiveConsent()).toBe("denied");
   });
 
+  it("keeps a decline given before PostHog was added", () => {
+    const env = stubEnvironment({ timeZone: "America/Chicago" });
+    env.store.set("raspy:consent", "denied");
+    expect(readStoredConsent()).toBe("denied");
+  });
+
+  it("asks again when the only acceptance predates PostHog", () => {
+    // The privacy page promises that widening what is collected re-asks.
+    const env = stubEnvironment({ timeZone: "Europe/Paris" });
+    env.store.set("raspy:consent", "granted");
+    expect(readStoredConsent()).toBeNull();
+    expect(effectiveConsent()).toBe("denied");
+  });
+
   it("ignores a corrupted stored value rather than trusting it", () => {
     stubEnvironment({ timeZone: "Europe/Madrid", stored: "yes-please" });
     expect(readStoredConsent()).toBeNull();
@@ -173,6 +193,28 @@ describe("setConsent", () => {
     setConsent("denied");
     const written = env.cookiesWritten();
     expect(written).toContain("max-age=0");
+  });
+
+  it("expires PostHog's cookie and storage on withdrawal", () => {
+    const token = "ph_phc_abc_posthog";
+    (globalThis as unknown as { document: { cookie: string } }).document.cookie =
+      `${token}=%7B%7D`;
+    const keys = [token, "__ph_opt_in_out_phc_abc", "raspy:theme"];
+    const removed: string[] = [];
+    vi.stubGlobal("localStorage", {
+      length: keys.length,
+      key: (index: number) => keys[index] ?? null,
+      getItem: () => null,
+      setItem: () => {},
+      removeItem: (key: string) => removed.push(key),
+    });
+
+    setConsent("denied");
+    expect(env.cookiesWritten()).toContain(`${token}=; max-age=0`);
+    // PostHog's opt-out flag has to survive, or a live instance opts back in.
+    expect(removed).toContain(token);
+    expect(removed).not.toContain("__ph_opt_in_out_phc_abc");
+    expect(removed).not.toContain("raspy:theme");
   });
 
   it("does not clear cookies when consent is given", () => {

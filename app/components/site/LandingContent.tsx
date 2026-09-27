@@ -211,9 +211,9 @@ export function LandingContent() {
             enter it.
           </li>
           <li>
-            <strong>One optional third party.</strong> A visit counter (Google
-            Analytics) that never sees a photo, is off by default in the EU and
-            UK, and can be switched off anywhere from Settings.
+            <strong>Optional visit counting.</strong> Google Analytics and
+            PostHog count page visits, never see a photo, are off by default in
+            the EU and UK, and switch off together from Settings.
           </li>
         </ul>
         <p>

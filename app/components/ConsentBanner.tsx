@@ -71,8 +71,8 @@ export function ConsentBanner() {
             Analytics cookies
           </h2>
           <p id="consent-body" className="text-caption text-muted">
-            We count page visits with Google Analytics to see whether Raspy is
-            worth continuing. Your photos are never part of it — they never
+            We count page visits with Google Analytics and PostHog to see
+            whether Raspy is worth continuing. Your photos are never part of it — they never
             leave this device either way.{" "}
             <Link
               href="/privacy"

@@ -87,8 +87,8 @@ export const raspyVsPhotopea: Comparison = {
       <p>
         <strong>No ads.</strong> Photopea is free because of an ad panel
         beside the canvas, which its premium tier removes for a monthly fee.
-        Raspy has no ads and no paid tier; the one third party is a visit
-        counter you can switch off.
+        Raspy has no ads and no paid tier; the only third parties are two
+        visit counters, switched off together with one toggle.
       </p>
       <p>
         <strong>Metadata off by default.</strong> Photopea lets you attach

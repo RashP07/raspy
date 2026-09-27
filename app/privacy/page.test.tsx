@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PrivacyPage from "./page";
-import { GA_MEASUREMENT_ID } from "@/app/lib/analytics";
+import { GA_MEASUREMENT_ID, POSTHOG_TOKEN } from "@/app/lib/analytics";
 import { CONSENT_STORAGE_KEY } from "@/app/lib/consent";
 
 beforeEach(() => {
@@ -44,6 +44,13 @@ describe("privacy page", () => {
     render(<PrivacyPage />);
     const expected = `_ga_${GA_MEASUREMENT_ID.replace(/^G-/, "")}`;
     expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
+  it("names both PostHog cookies exactly as PostHog will set them", () => {
+    render(<PrivacyPage />);
+    const cookie = `ph_${POSTHOG_TOKEN}_posthog`;
+    expect(screen.getByText(cookie)).toBeInTheDocument();
+    expect(screen.getByText(`${cookie}_cpm`)).toBeInTheDocument();
   });
 
   it("withdraws consent from the page itself, not only from Settings", async () => {

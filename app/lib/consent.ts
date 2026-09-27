@@ -21,7 +21,13 @@ import { GA_MEASUREMENT_ID } from "./analytics";
 
 export type ConsentChoice = "granted" | "denied";
 
-export const CONSENT_STORAGE_KEY = "raspy:consent";
+/**
+ * Versioned, because the privacy page promises that widening what is collected
+ * asks again. v2 added PostHog: an acceptance given for Google Analytics alone
+ * does not extend to it, but a decline under the old key still stands.
+ */
+export const CONSENT_STORAGE_KEY = "raspy:consent:v2";
+const LEGACY_CONSENT_STORAGE_KEY = "raspy:consent";
 
 /** Fired on this window whenever the choice changes. Mirrors THEME_EVENT. */
 export const CONSENT_EVENT = "raspy:consentchange";
@@ -77,7 +83,10 @@ export function isConsentChoice(value: unknown): value is ConsentChoice {
 export function readStoredConsent(): ConsentChoice | null {
   try {
     const stored = localStorage.getItem(CONSENT_STORAGE_KEY);
-    return isConsentChoice(stored) ? stored : null;
+    if (isConsentChoice(stored)) return stored;
+    return localStorage.getItem(LEGACY_CONSENT_STORAGE_KEY) === "denied"
+      ? "denied"
+      : null;
   } catch {
     return null;
   }
@@ -98,6 +107,7 @@ export function effectiveConsent(): ConsentChoice {
 function storeConsent(choice: ConsentChoice): void {
   try {
     localStorage.setItem(CONSENT_STORAGE_KEY, choice);
+    localStorage.removeItem(LEGACY_CONSENT_STORAGE_KEY);
   } catch {
     // Private mode or a full quota. The choice still holds for this session,
     // and an unstored choice re-asks next time rather than assuming consent.
@@ -108,9 +118,13 @@ function storeConsent(choice: ConsentChoice): void {
  * Consent Mode stops GA writing cookies, but it does not retract ones already
  * written before a visitor changed their mind. Expiring them here is the
  * difference between honouring a withdrawal and merely recording it.
+ *
+ * PostHog keeps a copy of its identifier in web storage as well as the cookie,
+ * so its `ph_` entries go too. Its own opt-out flag is `__ph_`-prefixed and is
+ * deliberately left alone: removing it would opt a live instance back in.
  */
-function clearAnalyticsCookies(): void {
-  const prefixes = ["_ga", "_gid", "_gat"];
+export function clearAnalyticsStorage(): void {
+  const prefixes = ["_ga", "_gid", "_gat", "ph_"];
   const names = document.cookie
     .split(";")
     .map((entry) => entry.split("=")[0]?.trim())
@@ -131,6 +145,20 @@ function clearAnalyticsCookies(): void {
       document.cookie = `${name}=; max-age=0; path=/${domain ? `; domain=${domain}` : ""}`;
     }
   }
+
+  for (const area of ["localStorage", "sessionStorage"] as const) {
+    try {
+      const storage = globalThis[area];
+      const keys: string[] = [];
+      for (let index = 0; index < storage.length; index++) {
+        const key = storage.key(index);
+        if (key?.startsWith("ph_")) keys.push(key);
+      }
+      keys.forEach((key) => storage.removeItem(key));
+    } catch {
+      // Storage blocked: then PostHog could not have written to it either.
+    }
+  }
 }
 
 type GtagWindow = Window & { dataLayer?: unknown[] };
@@ -147,7 +175,7 @@ function pushConsentUpdate(choice: ConsentChoice): void {
 export function setConsent(choice: ConsentChoice): void {
   storeConsent(choice);
   pushConsentUpdate(choice);
-  if (choice === "denied") clearAnalyticsCookies();
+  if (choice === "denied") clearAnalyticsStorage();
   window.dispatchEvent(new Event(CONSENT_EVENT));
 }
 
@@ -178,6 +206,9 @@ gtag('consent', 'default', {
 });
 try {
   var stored = localStorage.getItem(${JSON.stringify(CONSENT_STORAGE_KEY)});
+  if (stored === null && localStorage.getItem(${JSON.stringify(LEGACY_CONSENT_STORAGE_KEY)}) === 'denied') {
+    stored = 'denied';
+  }
   if (stored === 'granted' || stored === 'denied') {
     gtag('consent', 'update', { analytics_storage: stored });
   }
